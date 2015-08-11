@@ -677,7 +677,7 @@ int main(void) {
   }
 }
 
-void putch(char ch) {
+void uartPutch(char ch) {
 #ifndef SOFT_UART
   while (!(UART_SRA & _BV(UDRE0)));
   UART_UDR = ch;
@@ -707,7 +707,7 @@ void putch(char ch) {
 #endif
 }
 
-uint8_t getch(void) {
+uint8_t uartGetch(void) {
   uint8_t ch;
 
 #ifdef LED_DATA_FLASH
@@ -790,6 +790,206 @@ void uartDelay() {
   );
 }
 #endif
+
+uint8_t escGetch(void) {
+  const uint8_t ch = uartGetch();
+  if (ch != 0x7d)
+    return ch;
+  return 0x20 ^ uartGetch();
+}
+
+static uint8_t lastIncomingSequence = 0;
+static uint8_t lastOutgoingSequence = 0;
+static uint8_t lastAddress[10];
+
+static void escPutch(char ch) {
+  if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
+    uartPutch(0x7d);
+    uartPutch(ch ^ 0x20);
+    return;
+  }
+
+  uartPutch(ch);
+}
+
+static void sendAck(void) {
+  uartPutch(0x7e);
+  escPutch(0); /* Length MSB */
+  escPutch(16); /* Length LSB */
+
+  uint8_t checksum = 0x10;
+  escPutch(0x10); /* ZigBee Transmit Request */
+  escPutch(0); /* Delivery sequence */
+
+  /* 64-bit address and 16-bit address */
+  uint8_t index;
+  for (index = 0; index < 10; index++) {
+    uint8_t addrByte = lastAddress[index];
+    checksum += addrByte;
+    escPutch(addrByte);
+  }
+
+  checksum += 1;
+  escPutch(1); /* Broadcast radius */
+  escPutch(0); /* Options */
+
+  escPutch(0); /* ACK */
+
+  checksum += lastIncomingSequence;
+  escPutch(lastIncomingSequence); /* Sequence */
+
+  escPutch(~checksum);
+}
+
+static uint8_t poll(uint8_t canReceive) {
+  uint8_t sawInvalid = 0;
+  uint8_t address[10];
+  for (;;) {
+    /* Start delimiter */
+    if (uartGetch() != 0x7e)
+      continue;
+
+    /* Length MSB (of the data) */
+    if (escGetch() != 0)
+      continue;
+
+    /* Length LSB (of the data) */
+    const uint8_t length = escGetch();
+    if (length < 13)
+      /* Zero length payload? */
+      continue;
+
+    uint8_t checksum = escGetch();
+    if (checksum != 0x90)
+      /* ZigBee Receive packet */
+      continue;
+
+    /* 64-bit address and 16-bit address */
+    uint8_t index;
+    for (index = 0; index < 10; index++) {
+      uint8_t addrByte = escGetch();
+      address[index] = addrByte;
+      checksum += addrByte;
+    }
+
+    /* Receive options */
+    checksum += escGetch();
+
+    /* [REQUEST = 1] [SEQUENCE] [FIRMWARE = 23] [DATA...] */
+    /* [ACK = 0] [SEQUENCE] */
+
+    if (length == 13 + 2) {
+      uint8_t checksum = escGetch();
+      if (checksum != 0)
+        /* ACK */
+        continue;
+
+      const uint8_t sequence = escGetch();
+      checksum += sequence;
+
+      if (0xff - checksum != escGetch())
+        continue;
+
+      /* sequence is ACK'd */
+      if (lastOutgoingSequence == sequence) {
+        if (!canReceive)
+          return 0;
+      }
+
+      if (!canReceive && sawInvalid++)
+        /* Wrong ACK twice */
+        return 1;
+
+      continue;
+    } else if (length == 13 + 4) {
+      if (!canReceive)
+        /* We can't receive data right now, drop it. */
+        continue;
+
+      uint8_t checksum = escGetch();
+      if (checksum != 1)
+        /* REQUEST */
+        continue;
+
+      const uint8_t sequence = escGetch();
+      checksum += sequence;
+
+      const uint8_t type = escGetch();
+      checksum += type;
+      if (type != 23)
+        /* FIRMWARE */
+        continue;
+
+      const uint8_t data = escGetch();
+      checksum += data;
+
+      if (0xff - checksum != escGetch())
+        /* Checksum mismatch */
+        continue;
+
+      uint8_t index;
+      for (index = 0; index < 10; index++)
+        lastAddress[index] = address[index];
+
+      if (sequence != lastIncomingSequence + 1) {
+        /* Wrong sequence */
+        if (sawInvalid++)
+          sendAck();
+        continue;
+      }
+
+      /* data is valid, sequence is correct. */
+      lastIncomingSequence = sequence;
+
+      sendAck();
+
+      return data;
+    }
+  }
+}
+
+void putch(char ch) {
+  uint8_t sequence = ++lastOutgoingSequence;
+  do {
+    uartPutch(0x7e);
+    escPutch(0); /* Length MSB */
+    escPutch(16); /* Length LSB */
+
+    uint8_t checksum = 0x10;
+    escPutch(0x10); /* ZigBee Transmit Request */
+    escPutch(0); /* Delivery sequence */
+
+    /* 64-bit address and 16-bit address */
+    uint8_t index;
+    for (index = 0; index < 10; index++) {
+      uint8_t addrByte = lastAddress[index];
+      checksum += addrByte;
+      escPutch(addrByte);
+    }
+
+    checksum += 1;
+    escPutch(1); /* Broadcast radius */
+    escPutch(0); /* Options */
+
+    checksum += 1;
+    escPutch(1); /* REQUEST */
+
+    checksum += sequence;
+    escPutch(sequence); /* Sequence */
+
+    checksum += 23;
+    escPutch(23); /* FIRMWARE */
+
+    checksum += ch;
+    escPutch(ch); /* Data */
+
+    escPutch(~checksum);
+  } while (poll(0));
+}
+
+uint8_t getch(void) {
+  return poll(1);
+}
 
 void getNch(uint8_t count) {
   do getch(); while (--count);
