@@ -800,14 +800,16 @@ uint8_t escGetch(void) {
   return 0x20 ^ uartGetch();
 }
 
-static uint8_t lastIncomingSequence = 0;
-static uint8_t lastOutgoingSequence = 0;
-static uint8_t lastAddress[10];
+static struct {
+  uint8_t lastIncomingSequence;
+  uint8_t lastOutgoingSequence;
+  uint8_t lastAddress[10];
 
 #define FRAME_UNKNOWN 0
 #define FRAME_UART 1
 #define FRAME_FRAME 2
-static uint8_t frameMode;
+  uint8_t frameMode;
+} state;
 
 static void escPutch(char ch) {
   if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
@@ -834,7 +836,7 @@ static uint8_t txHeader(const uint8_t length,
   /* 64-bit address and 16-bit address */
   uint8_t index;
   for (index = 0; index < 10; index++) {
-    uint8_t addrByte = lastAddress[index];
+    uint8_t addrByte = state.lastAddress[index];
     checksum -= addrByte;
     escPutch(addrByte);
   }
@@ -950,9 +952,9 @@ static uint8_t poll(uint8_t waitForAck) {
 
       uint8_t index;
       for (index = 0; index < 10; index++)
-        lastAddress[index] = address[index];
+        state.lastAddress[index] = address[index];
 
-      uint8_t lastSequence = lastIncomingSequence;
+      uint8_t lastSequence = state.lastIncomingSequence;
       uint8_t nextSequence = lastSequence + 1;
       if (nextSequence == 0)
         nextSequence++;
@@ -967,7 +969,7 @@ static uint8_t poll(uint8_t waitForAck) {
       sendAck(nextSequence);
 
       /* data is valid, sequence is correct. */
-      lastIncomingSequence = nextSequence;
+      state.lastIncomingSequence = nextSequence;
 
       return data;
     }
@@ -975,14 +977,14 @@ static uint8_t poll(uint8_t waitForAck) {
 }
 
 void putch(const char ch) {
-  if (frameMode == FRAME_UART) {
+  if (state.frameMode == FRAME_UART) {
     uartPutch(ch);
     return;
   }
 
-  uint8_t sequence = lastOutgoingSequence;
+  uint8_t sequence = state.lastOutgoingSequence;
   while (++sequence == 0);
-  lastOutgoingSequence = sequence;
+  state.lastOutgoingSequence = sequence;
 
   do {
     uint8_t checksum = txHeader(TXHEADER_BYTES + 2, 1 /* REQUEST */, sequence);
@@ -1002,16 +1004,16 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
-  if (!frameMode) {
+  if (!state.frameMode) {
     uint8_t ch = uartGetch();
     if (ch != 0x7e) {
-      frameMode = FRAME_UART;
+      state.frameMode = FRAME_UART;
       return ch;
     }      
-    frameMode = FRAME_FRAME;
+    state.frameMode = FRAME_FRAME;
   }
 
-  if (frameMode == FRAME_UART)
+  if (state.frameMode == FRAME_UART)
     return uartGetch();
 
   return poll(0);
