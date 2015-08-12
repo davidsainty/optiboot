@@ -486,8 +486,8 @@ atmega328_pro8:
 atmega328_pro8_isp: atmega328_pro8
 atmega328_pro8_isp: TARGET = atmega328_pro_8MHz
 atmega328_pro8_isp: MCU_TARGET = atmega328p
-# 512 byte boot, SPIEN
-atmega328_pro8_isp: HFUSE ?= DE
+# 512 word/1024 byte boot (BOOTSZ0=1, BOOTSZ1=0), SPIEN
+atmega328_pro8_isp: HFUSE ?= DC
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_pro8_isp: LFUSE ?= FF
 # 2.7V brownout
