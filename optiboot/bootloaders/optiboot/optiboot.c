@@ -804,6 +804,11 @@ static uint8_t lastIncomingSequence = 0;
 static uint8_t lastOutgoingSequence = 0;
 static uint8_t lastAddress[10];
 
+#define FRAME_UNKNOWN 0
+#define FRAME_UART 1
+#define FRAME_FRAME 2
+static uint8_t frameMode;
+
 static void escPutch(char ch) {
   if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
     uartPutch(0x7d);
@@ -961,7 +966,12 @@ static uint8_t poll(uint8_t waitForAck) {
   }
 }
 
-void putch(char ch) {  
+void putch(char ch) {
+  if (frameMode == FRAME_UART) {
+    uartPutch(ch);
+    return;
+  }
+
   uint8_t sequence;
   do {
     sequence = ++lastOutgoingSequence;
@@ -1002,7 +1012,23 @@ void putch(char ch) {
   } while (poll(sequence));
 }
 
+/*
+ * main() does a getch() before a putch(), so we can determine the
+ * protocol here first.
+ */
 uint8_t getch(void) {
+  if (!frameMode) {
+    uint8_t ch = uartGetch();
+    if (ch != 0x7e) {
+      frameMode = FRAME_UART;
+      return ch;
+    }      
+    frameMode = FRAME_FRAME;
+  }
+
+  if (frameMode == FRAME_UART)
+    return uartGetch();
+
   return poll(0);
 }
 
