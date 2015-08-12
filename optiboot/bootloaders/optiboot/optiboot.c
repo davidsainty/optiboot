@@ -814,10 +814,8 @@ static struct {
 static void escPutch(char ch) {
   if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
     uartPutch(0x7d);
-    uartPutch(ch ^ 0x20);
-    return;
+    ch ^= 0x20;
   }
-
   uartPutch(ch);
 }
 
