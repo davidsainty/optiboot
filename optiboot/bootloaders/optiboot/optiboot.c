@@ -842,7 +842,7 @@ static void sendAck(void) {
   escPutch(checksum);
 }
 
-static uint8_t poll(uint8_t canReceive) {
+static uint8_t poll(uint8_t waitForAck) {
   uint8_t sawInvalid = 0;
   uint8_t address[10];
   for (;;) {
@@ -863,7 +863,8 @@ static uint8_t poll(uint8_t canReceive) {
     if (escGetch() != 0x90)
       /* ZigBee Receive packet */
       continue;
-    uint8_t checksum = 0xff - 0x90;
+
+    register uint8_t checksum = 0xff - 0x90;
 
     /* 64-bit address and 16-bit address */
     uint8_t index;
@@ -880,8 +881,11 @@ static uint8_t poll(uint8_t canReceive) {
     /* [ACK = 0] [SEQUENCE] */
 
     if (length == 13 + 2) {
-      uint8_t type = escGetch();
-      if (type != 0)
+      if (!waitForAck)
+        /* We can't receive ACK right now, drop it. */
+        continue;
+
+      if (escGetch() != 0)
         /* ACK */
         continue;
 
@@ -892,18 +896,16 @@ static uint8_t poll(uint8_t canReceive) {
         continue;
 
       /* sequence is ACK'd */
-      if (lastOutgoingSequence == sequence) {
-        if (!canReceive)
-          return 0;
-      }
+      if (waitForAck == sequence)
+        return 0;
 
-      if (!canReceive && sawInvalid++)
+      if (sawInvalid++)
         /* Wrong ACK twice */
         return 1;
 
       continue;
     } else if (length == 13 + 4) {
-      if (!canReceive)
+      if (waitForAck)
         /* We can't receive data right now, drop it. */
         continue;
 
@@ -920,10 +922,10 @@ static uint8_t poll(uint8_t canReceive) {
 
       {
         const uint8_t type = escGetch();
-        checksum -= type;
         if (type != 23)
           /* FIRMWARE_DELIVER */
           continue;
+        checksum -= type;
       }
 
       const uint8_t data = escGetch();
@@ -958,8 +960,12 @@ static uint8_t poll(uint8_t canReceive) {
   }
 }
 
-void putch(char ch) {
-  uint8_t sequence = ++lastOutgoingSequence;
+void putch(char ch) {  
+  uint8_t sequence;
+  do {
+    sequence = ++lastOutgoingSequence;
+  } while (sequence == 0);
+
   do {
     uartPutch(0x7e);
     escPutch(0); /* Length MSB */
@@ -992,11 +998,11 @@ void putch(char ch) {
     escPutch(ch); /* Data */
 
     escPutch(checksum);
-  } while (poll(0));
+  } while (poll(sequence));
 }
 
 uint8_t getch(void) {
-  return poll(1);
+  return poll(0);
 }
 
 void getNch(uint8_t count) {
