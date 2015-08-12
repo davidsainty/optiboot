@@ -861,9 +861,8 @@ static uint8_t poll(uint8_t waitForAck) {
 
     /* Length LSB (of the data) */
     const uint8_t length = escGetch();
-    if (length < 13)
-      /* Zero length payload? */
-      continue;
+    /* Assume the length reaches the next check. */
+    /* if (length < 13) continue; */
 
     if (escGetch() != 0x90)
       /* ZigBee Receive packet */
