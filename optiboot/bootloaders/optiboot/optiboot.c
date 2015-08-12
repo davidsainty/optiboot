@@ -819,9 +819,10 @@ static void escPutch(char ch) {
   uartPutch(ch);
 }
 
-/* Length should be length of data - checksum byte + 14 bytes */
-#define TXHEADER_BYTES 14
-static uint8_t txHeader(uint8_t length) {
+/* Length = TXHEADER_BYTES + additional data - checksum byte */
+#define TXHEADER_BYTES 16
+static uint8_t txHeader(const uint8_t length,
+                        const int8_t type, const int8_t sequence) {
   uartPutch(0x7e);
   escPutch(0); /* Length MSB */
   escPutch(length); /* Length LSB */
@@ -841,17 +842,17 @@ static uint8_t txHeader(uint8_t length) {
   escPutch(0x01); /* Broadcast radius */
   escPutch(0); /* Options */
 
+  checksum -= type;
+  escPutch(type); /* REQUEST/ACK */
+
+  checksum -= sequence;
+  escPutch(sequence); /* REQUEST/ACK */
+
   return checksum;
 }
 
 static void sendAck(const uint8_t sequence) {
-  uint8_t checksum = txHeader(TXHEADER_BYTES + 2);
-
-  escPutch(0); /* ACK */
-
-  checksum -= sequence;
-  escPutch(sequence); /* Sequence */
-
+  uint8_t checksum = txHeader(TXHEADER_BYTES, 0 /* ACK */, sequence);
   escPutch(checksum);
 }
 
@@ -984,15 +985,9 @@ void putch(const char ch) {
   lastOutgoingSequence = sequence;
 
   do {
-    uint8_t checksum = txHeader(TXHEADER_BYTES + 4);
+    uint8_t checksum = txHeader(TXHEADER_BYTES + 2, 1 /* REQUEST */, sequence);
 
-    checksum -= 1 /* REQUEST */ - 24 /* FIRMWARE_REPLY */;
-
-    escPutch(1); /* REQUEST */
-
-    checksum -= sequence;
-    escPutch(sequence); /* Sequence */
-
+    checksum -= 24 /* FIRMWARE_REPLY */;
     escPutch(24); /* FIRMWARE_REPLY */
 
     checksum -= ch;
