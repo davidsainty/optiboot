@@ -819,7 +819,7 @@ static void sendAck(void) {
   escPutch(0); /* Length MSB */
   escPutch(16); /* Length LSB */
 
-  uint8_t checksum = 0x10;
+  uint8_t checksum = 0x10 + 0 + 0x01 + 0 + 0;
   escPutch(0x10); /* ZigBee Transmit Request */
   escPutch(0); /* Delivery sequence */
 
@@ -831,8 +831,7 @@ static void sendAck(void) {
     escPutch(addrByte);
   }
 
-  checksum += 1;
-  escPutch(1); /* Broadcast radius */
+  escPutch(0x01); /* Broadcast radius */
   escPutch(0); /* Options */
 
   escPutch(0); /* ACK */
