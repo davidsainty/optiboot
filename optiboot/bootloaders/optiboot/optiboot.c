@@ -975,7 +975,7 @@ static uint8_t poll(uint8_t waitForAck) {
 }
 
 void putch(const char ch) {
-  if (state.frameMode == FRAME_UART) {
+  if (state.frameMode != FRAME_FRAME) {
     uartPutch(ch);
     return;
   }
@@ -1002,17 +1002,17 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
-  if (!state.frameMode) {
+  if (state.frameMode == FRAME_UART)
+    return uartGetch();
+
+  if (state.frameMode != FRAME_FRAME) {
     uint8_t ch = uartGetch();
     if (ch != 0x7e) {
       state.frameMode = FRAME_UART;
       return ch;
-    }      
+    }
     state.frameMode = FRAME_FRAME;
   }
-
-  if (state.frameMode == FRAME_UART)
-    return uartGetch();
 
   return poll(0);
 }
