@@ -972,10 +972,9 @@ void putch(char ch) {
     return;
   }
 
-  uint8_t sequence;
-  do {
-    sequence = ++lastOutgoingSequence;
-  } while (sequence == 0);
+  uint8_t sequence = lastOutgoingSequence;
+  while (++sequence == 0);
+  lastOutgoingSequence = sequence;
 
   do {
     uartPutch(0x7e);
