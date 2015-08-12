@@ -155,6 +155,8 @@ ifdef BAUD_RATE
 BAUD_RATE_CMD = -DBAUD_RATE=$(BAUD_RATE)
 dummy = FORCE
 else
+# 9600bps is the standard speed.  With an 8MHz build on a 16MHz
+# Arduino, "avrdude -b19200" works.
 BAUD_RATE_CMD = -DBAUD_RATE=9600
 endif
 
