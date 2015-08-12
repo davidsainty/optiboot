@@ -937,7 +937,11 @@ static uint8_t poll(uint8_t canReceive) {
       for (index = 0; index < 10; index++)
         lastAddress[index] = address[index];
 
-      if (sequence != lastIncomingSequence + 1) {
+      uint8_t nextSequence = lastIncomingSequence + 1;
+      if (nextSequence == 0)
+        nextSequence++;
+
+      if (sequence != nextSequence) {
         /* Wrong sequence */
         if (sawInvalid++)
           sendAck();
@@ -945,7 +949,7 @@ static uint8_t poll(uint8_t canReceive) {
       }
 
       /* data is valid, sequence is correct. */
-      lastIncomingSequence = sequence;
+      lastIncomingSequence = nextSequence;
 
       sendAck();
 
