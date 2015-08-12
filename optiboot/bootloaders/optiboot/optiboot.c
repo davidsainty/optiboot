@@ -819,7 +819,11 @@ static void escPutch(char ch) {
   uartPutch(ch);
 }
 
-static uint8_t txHeader(void) {
+static uint8_t txHeader(uint8_t length) {
+  uartPutch(0x7e);
+  escPutch(0); /* Length MSB */
+  escPutch(length); /* Length LSB */
+
   uint8_t checksum = 0xff - 0x10 - 0 - 0x01 - 0;
   escPutch(0x10); /* ZigBee Transmit Request */
   escPutch(0); /* Delivery sequence */
@@ -839,11 +843,7 @@ static uint8_t txHeader(void) {
 }
 
 static void sendAck(const uint8_t sequence) {
-  uartPutch(0x7e);
-  escPutch(0); /* Length MSB */
-  escPutch(16); /* Length LSB */
-
-  uint8_t checksum = txHeader();
+  uint8_t checksum = txHeader(16);
 
   escPutch(0); /* ACK */
 
@@ -982,11 +982,7 @@ void putch(const char ch) {
   lastOutgoingSequence = sequence;
 
   do {
-    uartPutch(0x7e);
-    escPutch(0); /* Length MSB */
-    escPutch(16); /* Length LSB */
-
-    uint8_t checksum = txHeader();
+    uint8_t checksum = txHeader(16);
 
     checksum -= 1 /* REQUEST */ - 24 /* FIRMWARE_REPLY */;
 
