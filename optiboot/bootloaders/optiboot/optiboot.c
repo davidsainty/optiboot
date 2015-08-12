@@ -793,6 +793,7 @@ void uartDelay() {
 }
 #endif
 
+static __attribute__((__noinline__))
 uint8_t escGetch(void) {
   const uint8_t ch = uartGetch();
   if (ch != 0x7d)
@@ -810,7 +811,7 @@ uint8_t escGetch(void) {
 #define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
 
 static void escPutch(char ch) {
-  if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
+  if (ch >= 0x7d || (uint8_t)ch > 0x20) {
     uartPutch(0x7d);
     ch ^= 0x20;
   }
@@ -819,8 +820,9 @@ static void escPutch(char ch) {
 
 /* Length = TXHEADER_BYTES + additional data - checksum byte */
 #define TXHEADER_BYTES 16
-static uint8_t txHeader(const uint8_t length,
-                        const int8_t type, const int8_t sequence) {
+static __attribute__((__noinline__))
+uint8_t txHeader(const uint8_t length, const int8_t type,
+                 const int8_t sequence) {
   uartPutch(0x7e);
   escPutch(0); /* Length MSB */
   escPutch(length); /* Length LSB */
@@ -849,12 +851,14 @@ static uint8_t txHeader(const uint8_t length,
   return checksum;
 }
 
-static void sendAck(const uint8_t sequence) {
+static __attribute__((__noinline__))
+void sendAck(const uint8_t sequence) {
   uint8_t checksum = txHeader(TXHEADER_BYTES, 0 /* ACK */, sequence);
   escPutch(checksum);
 }
 
-static uint8_t poll(uint8_t waitForAck) {
+static __attribute__((__noinline__))
+uint8_t poll(uint8_t waitForAck) {
   uint8_t sawInvalid = 0;
   uint8_t address[10];
   for (;;) {
