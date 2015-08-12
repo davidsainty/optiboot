@@ -819,7 +819,7 @@ static void sendAck(void) {
   escPutch(0); /* Length MSB */
   escPutch(16); /* Length LSB */
 
-  uint8_t checksum = 0x10 + 0 + 0x01 + 0 + 0;
+  uint8_t checksum = 0xff - 0x10 - 0 - 0x01 - 0 - 0;
   escPutch(0x10); /* ZigBee Transmit Request */
   escPutch(0); /* Delivery sequence */
 
@@ -827,7 +827,7 @@ static void sendAck(void) {
   uint8_t index;
   for (index = 0; index < 10; index++) {
     uint8_t addrByte = lastAddress[index];
-    checksum += addrByte;
+    checksum -= addrByte;
     escPutch(addrByte);
   }
 
@@ -836,10 +836,10 @@ static void sendAck(void) {
 
   escPutch(0); /* ACK */
 
-  checksum += lastIncomingSequence;
+  checksum -= lastIncomingSequence;
   escPutch(lastIncomingSequence); /* Sequence */
 
-  escPutch(~checksum);
+  escPutch(checksum);
 }
 
 static uint8_t poll(uint8_t canReceive) {
@@ -860,35 +860,35 @@ static uint8_t poll(uint8_t canReceive) {
       /* Zero length payload? */
       continue;
 
-    uint8_t checksum = escGetch();
-    if (checksum != 0x90)
+    if (escGetch() != 0x90)
       /* ZigBee Receive packet */
       continue;
+    uint8_t checksum = 0xff - 0x90;
 
     /* 64-bit address and 16-bit address */
     uint8_t index;
     for (index = 0; index < 10; index++) {
       uint8_t addrByte = escGetch();
       address[index] = addrByte;
-      checksum += addrByte;
+      checksum -= addrByte;
     }
 
     /* Receive options */
-    checksum += escGetch();
+    checksum -= escGetch();
 
     /* [REQUEST = 1] [SEQUENCE] [FIRMWARE = 23] [DATA...] */
     /* [ACK = 0] [SEQUENCE] */
 
     if (length == 13 + 2) {
-      uint8_t checksum = escGetch();
-      if (checksum != 0)
+      uint8_t type = escGetch();
+      if (type != 0)
         /* ACK */
         continue;
 
       const uint8_t sequence = escGetch();
-      checksum += sequence;
+      checksum -= sequence;
 
-      if (0xff - checksum != escGetch())
+      if (checksum != escGetch())
         continue;
 
       /* sequence is ACK'd */
@@ -907,24 +907,29 @@ static uint8_t poll(uint8_t canReceive) {
         /* We can't receive data right now, drop it. */
         continue;
 
-      uint8_t checksum = escGetch();
-      if (checksum != 1)
-        /* REQUEST */
-        continue;
+      {
+        uint8_t frameType = escGetch();
+        if (frameType != 1)
+          /* REQUEST */
+          continue;
+        checksum -= frameType;
+      }
 
       const uint8_t sequence = escGetch();
-      checksum += sequence;
+      checksum -= sequence;
 
-      const uint8_t type = escGetch();
-      checksum += type;
-      if (type != 23)
-        /* FIRMWARE_DELIVER */
-        continue;
+      {
+        const uint8_t type = escGetch();
+        checksum -= type;
+        if (type != 23)
+          /* FIRMWARE_DELIVER */
+          continue;
+      }
 
       const uint8_t data = escGetch();
-      checksum += data;
+      checksum -= data;
 
-      if (0xff - checksum != escGetch())
+      if (checksum != escGetch())
         /* Checksum mismatch */
         continue;
 
@@ -956,8 +961,8 @@ void putch(char ch) {
     escPutch(0); /* Length MSB */
     escPutch(16); /* Length LSB */
 
-    uint8_t checksum = 0x10 + 0x01 +
-      1 /* REQUEST */ + 24 /* FIRMWARE_REPLY */;
+    uint8_t checksum = 0xff - 0x10 - 0x01 -
+      1 /* REQUEST */ - 24 /* FIRMWARE_REPLY */;
     escPutch(0x10); /* ZigBee Transmit Request */
     escPutch(0); /* Delivery sequence */
 
@@ -965,7 +970,7 @@ void putch(char ch) {
     uint8_t index;
     for (index = 0; index < 10; index++) {
       uint8_t addrByte = lastAddress[index];
-      checksum += addrByte;
+      checksum -= addrByte;
       escPutch(addrByte);
     }
 
@@ -974,15 +979,15 @@ void putch(char ch) {
 
     escPutch(1); /* REQUEST */
 
-    checksum += sequence;
+    checksum -= sequence;
     escPutch(sequence); /* Sequence */
 
     escPutch(24); /* FIRMWARE_REPLY */
 
-    checksum += ch;
+    checksum -= ch;
     escPutch(ch); /* Data */
 
-    escPutch(~checksum);
+    escPutch(checksum);
   } while (poll(0));
 }
 
