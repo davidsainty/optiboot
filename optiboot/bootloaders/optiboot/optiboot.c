@@ -955,9 +955,8 @@ uint8_t poll(uint8_t waitForAck) {
         lastAddress[index] = address[index];
 
       uint8_t lastSequence = lastIncomingSequence;
-      uint8_t nextSequence = lastSequence + 1;
-      if (nextSequence == 0)
-        nextSequence++;
+      uint8_t nextSequence = lastSequence;
+      while (++nextSequence == 0);
 
       if (sequence != nextSequence) {
         /* Wrong sequence */
