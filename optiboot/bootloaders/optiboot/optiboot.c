@@ -918,7 +918,7 @@ static uint8_t poll(uint8_t canReceive) {
       const uint8_t type = escGetch();
       checksum += type;
       if (type != 23)
-        /* FIRMWARE */
+        /* FIRMWARE_DELIVER */
         continue;
 
       const uint8_t data = escGetch();
@@ -956,7 +956,8 @@ void putch(char ch) {
     escPutch(0); /* Length MSB */
     escPutch(16); /* Length LSB */
 
-    uint8_t checksum = 0x10;
+    uint8_t checksum = 0x10 + 0x01 +
+      1 /* REQUEST */ + 24 /* FIRMWARE_REPLY */;
     escPutch(0x10); /* ZigBee Transmit Request */
     escPutch(0); /* Delivery sequence */
 
@@ -968,18 +969,15 @@ void putch(char ch) {
       escPutch(addrByte);
     }
 
-    checksum += 1;
-    escPutch(1); /* Broadcast radius */
+    escPutch(0x01); /* Broadcast radius */
     escPutch(0); /* Options */
 
-    checksum += 1;
     escPutch(1); /* REQUEST */
 
     checksum += sequence;
     escPutch(sequence); /* Sequence */
 
-    checksum += 23;
-    escPutch(23); /* FIRMWARE */
+    escPutch(24); /* FIRMWARE_REPLY */
 
     checksum += ch;
     escPutch(ch); /* Data */
