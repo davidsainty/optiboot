@@ -846,7 +846,7 @@ static uint8_t txHeader(const uint8_t length,
   escPutch(type); /* REQUEST/ACK */
 
   checksum -= sequence;
-  escPutch(sequence); /* REQUEST/ACK */
+  escPutch(sequence); /* Sequence */
 
   return checksum;
 }
