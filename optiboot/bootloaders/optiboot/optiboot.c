@@ -814,7 +814,7 @@ static void escPutch(char ch) {
   uartPutch(ch);
 }
 
-static void sendAck(void) {
+static void sendAck(const uint8_t sequence) {
   uartPutch(0x7e);
   escPutch(0); /* Length MSB */
   escPutch(16); /* Length LSB */
@@ -836,8 +836,8 @@ static void sendAck(void) {
 
   escPutch(0); /* ACK */
 
-  checksum -= lastIncomingSequence;
-  escPutch(lastIncomingSequence); /* Sequence */
+  checksum -= sequence;
+  escPutch(sequence); /* Sequence */
 
   escPutch(checksum);
 }
@@ -939,21 +939,22 @@ static uint8_t poll(uint8_t waitForAck) {
       for (index = 0; index < 10; index++)
         lastAddress[index] = address[index];
 
-      uint8_t nextSequence = lastIncomingSequence + 1;
+      uint8_t lastSequence = lastIncomingSequence;
+      uint8_t nextSequence = lastSequence + 1;
       if (nextSequence == 0)
         nextSequence++;
 
       if (sequence != nextSequence) {
         /* Wrong sequence */
         if (sawInvalid++)
-          sendAck();
+          sendAck(lastSequence);
         continue;
       }
 
+      sendAck(nextSequence);
+
       /* data is valid, sequence is correct. */
       lastIncomingSequence = nextSequence;
-
-      sendAck();
 
       return data;
     }
