@@ -800,16 +800,14 @@ uint8_t escGetch(void) {
   return 0x20 ^ uartGetch();
 }
 
-static struct {
-  uint8_t lastIncomingSequence;
-  uint8_t lastOutgoingSequence;
-  uint8_t lastAddress[10];
-
 #define FRAME_UNKNOWN 0
 #define FRAME_UART 1
 #define FRAME_FRAME 2
-  uint8_t frameMode;
-} state;
+
+#define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
+#define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
+#define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
+#define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
 
 static void escPutch(char ch) {
   if (ch == 0x7e || ch == 0x7d || ch == 0x11 || ch == 0x13) {
@@ -834,7 +832,7 @@ static uint8_t txHeader(const uint8_t length,
   /* 64-bit address and 16-bit address */
   uint8_t index;
   for (index = 0; index < 10; index++) {
-    uint8_t addrByte = state.lastAddress[index];
+    uint8_t addrByte = lastAddress[index];
     checksum -= addrByte;
     escPutch(addrByte);
   }
@@ -950,9 +948,9 @@ static uint8_t poll(uint8_t waitForAck) {
 
       uint8_t index;
       for (index = 0; index < 10; index++)
-        state.lastAddress[index] = address[index];
+        lastAddress[index] = address[index];
 
-      uint8_t lastSequence = state.lastIncomingSequence;
+      uint8_t lastSequence = lastIncomingSequence;
       uint8_t nextSequence = lastSequence + 1;
       if (nextSequence == 0)
         nextSequence++;
@@ -967,7 +965,7 @@ static uint8_t poll(uint8_t waitForAck) {
       sendAck(nextSequence);
 
       /* data is valid, sequence is correct. */
-      state.lastIncomingSequence = nextSequence;
+      lastIncomingSequence = nextSequence;
 
       return data;
     }
@@ -975,14 +973,14 @@ static uint8_t poll(uint8_t waitForAck) {
 }
 
 void putch(const char ch) {
-  if (state.frameMode != FRAME_FRAME) {
+  if (frameMode != FRAME_FRAME) {
     uartPutch(ch);
     return;
   }
 
-  uint8_t sequence = state.lastOutgoingSequence;
+  uint8_t sequence = lastOutgoingSequence;
   while (++sequence == 0);
-  state.lastOutgoingSequence = sequence;
+  lastOutgoingSequence = sequence;
 
   do {
     uint8_t checksum = txHeader(TXHEADER_BYTES + 2, 1 /* REQUEST */, sequence);
@@ -1002,16 +1000,16 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
-  if (state.frameMode == FRAME_UART)
+  if (frameMode == FRAME_UART)
     return uartGetch();
 
-  if (state.frameMode != FRAME_FRAME) {
+  if (frameMode != FRAME_FRAME) {
     uint8_t ch = uartGetch();
     if (ch != 0x7e) {
-      state.frameMode = FRAME_UART;
+      frameMode = FRAME_UART;
       return ch;
     }
-    state.frameMode = FRAME_FRAME;
+    frameMode = FRAME_FRAME;
   }
 
   return poll(0);
