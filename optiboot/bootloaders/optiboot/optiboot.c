@@ -971,7 +971,7 @@ static uint8_t poll(uint8_t waitForAck) {
   }
 }
 
-void putch(char ch) {
+void putch(const char ch) {
   if (frameMode == FRAME_UART) {
     uartPutch(ch);
     return;
