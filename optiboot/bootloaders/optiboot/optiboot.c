@@ -528,6 +528,8 @@ int main(void) {
 #endif
 
   frameMode = FRAME_UNKNOWN;
+  lastOutgoingSequence = 0;
+  lastIncomingSequence = 0;
 
   /* Forever loop: exits by causing WDT reset */
   for (;;) {
