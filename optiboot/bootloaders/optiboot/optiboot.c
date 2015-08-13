@@ -1005,21 +1005,26 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
-  if (frameMode == FRAME_UART)
+ loop:
+  switch (frameMode) {
+  case FRAME_UART:
     return uartGetch();
-
-  while (frameMode != FRAME_FRAME) {
-    uint8_t ch = uartGetch();
-    if (ch == 0x30) {
-      /* Cmnd_STK_GET_SYNC */
-      frameMode = FRAME_UART;
-      return ch;
-    } else if (ch == 0x7e) {
-      frameMode = FRAME_FRAME;
+  case FRAME_UNKNOWN:
+    {
+      uint8_t ch = uartGetch();
+      if (ch == 0x30) {
+        /* Cmnd_STK_GET_SYNC */
+        frameMode = FRAME_UART;
+        return ch;
+      } else if (ch != 0x7e) {
+        goto loop;
+      }
     }
+    frameMode = FRAME_FRAME;
+    /* FALLTHROUGH */
+  default:
+    return poll(0);
   }
-
-  return poll(0);
 }
 
 void getNch(uint8_t count) {
