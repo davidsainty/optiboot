@@ -395,6 +395,15 @@ void appStart(uint8_t rstFlags) __attribute__ ((naked));
 /* This allows us to drop the zero init code, saving us memory */
 #define buff    ((uint8_t*)(RAMSTART))
 
+#define FRAME_UNKNOWN 0
+#define FRAME_UART 1
+#define FRAME_FRAME 2
+
+#define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
+#define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
+#define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
+#define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
+
 /* Virtual boot partition support */
 #ifdef VIRTUAL_BOOT_PARTITION
 #define rstVect0_sav (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*2+4))
@@ -517,6 +526,8 @@ int main(void) {
   /* Flash onboard LED to signal entering of bootloader */
   flash_led(LED_START_FLASHES * 2);
 #endif
+
+  frameMode = FRAME_UNKNOWN;
 
   /* Forever loop: exits by causing WDT reset */
   for (;;) {
@@ -801,15 +812,6 @@ uint8_t escGetch(void) {
   return 0x20 ^ uartGetch();
 }
 
-#define FRAME_UNKNOWN 0
-#define FRAME_UART 1
-#define FRAME_FRAME 2
-
-#define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
-#define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
-#define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
-#define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
-
 static void escPutch(char ch) {
   if (ch >= 0x7d || (uint8_t)ch > 0x20) {
     uartPutch(0x7d);
@@ -1006,13 +1008,15 @@ uint8_t getch(void) {
   if (frameMode == FRAME_UART)
     return uartGetch();
 
-  if (frameMode != FRAME_FRAME) {
+  while (frameMode != FRAME_FRAME) {
     uint8_t ch = uartGetch();
-    if (ch != 0x7e) {
+    if (ch == 0x30) {
+      /* Cmnd_STK_GET_SYNC */
       frameMode = FRAME_UART;
       return ch;
+    } else if (ch == 0x7e) {
+      frameMode = FRAME_FRAME;
     }
-    frameMode = FRAME_FRAME;
   }
 
   return poll(0);
