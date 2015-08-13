@@ -873,7 +873,7 @@ uint8_t poll(uint8_t waitForAck) {
     /* Length LSB (of the data) */
     const uint8_t length = escGetch();
     /* Assume the length reaches the next check. */
-    /* if (length < 13) continue; */
+    /* if (length < 12) continue; */
 
     if (escGetch() != 0x90)
       /* ZigBee Receive packet */
@@ -895,7 +895,7 @@ uint8_t poll(uint8_t waitForAck) {
     /* [REQUEST = 1] [SEQUENCE] [FIRMWARE = 23] [DATA...] */
     /* [ACK = 0] [SEQUENCE] */
 
-    if (length == 13 + 2) {
+    if (length == 12 + 2) {
       if (!waitForAck)
         /* We can't receive ACK right now, drop it. */
         continue;
@@ -919,7 +919,7 @@ uint8_t poll(uint8_t waitForAck) {
         return 1;
 
       continue;
-    } else if (length == 13 + 4) {
+    } else if (length == 12 + 4) {
       if (waitForAck)
         /* We can't receive data right now, drop it. */
         continue;
