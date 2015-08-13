@@ -509,8 +509,8 @@ int main(void) {
 #endif
 #endif
 
-  // Set up watchdog to trigger after 1s
-  watchdogConfig(WATCHDOG_1S);
+  // Set up watchdog to trigger after 8 seconds for XBee.
+  watchdogConfig(WATCHDOG_8S);
 
 #if (LED_START_FLASHES > 0) || defined(LED_DATA_FLASH)
   /* Set LED pin as output */
