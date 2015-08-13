@@ -924,10 +924,6 @@ uint8_t poll(uint8_t waitForAck) {
 
       continue;
     } else if (length == 12 + 4) {
-      if (waitForAck)
-        /* We can't receive data right now, drop it. */
-        continue;
-
       {
         uint8_t frameType = escGetch();
         if (frameType != 1)
@@ -974,7 +970,13 @@ uint8_t poll(uint8_t waitForAck) {
       /* data is valid, sequence is correct. */
       lastIncomingSequence = nextSequence;
 
-      return data;
+      if (!waitForAck)
+        /*
+         * If we receive a new data packet whilst we are waiting for
+         * an outstanding ACK, drop it.  This needs attention, surely
+         * an ACK and data packet may be reordered in the air.
+         */
+        return data;
     }
   }
 }
