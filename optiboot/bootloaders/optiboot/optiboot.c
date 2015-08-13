@@ -395,14 +395,17 @@ void appStart(uint8_t rstFlags) __attribute__ ((naked));
 /* This allows us to drop the zero init code, saving us memory */
 #define buff    ((uint8_t*)(RAMSTART))
 
-#define FRAME_UNKNOWN 0
-#define FRAME_UART 1
-#define FRAME_FRAME 2
+#define FRAME_UNKNOWN 0xfe
+#define FRAME_UART 0xfd
+#define FRAME_FRAME 0
 
 #define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
 #define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
 #define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
 #define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
+
+#define packetBuffer ((uint8_t*)(RAMSTART+SPM_PAGESIZE*4))
+#define packet ((uint8_t*)(RAMSTART+SPM_PAGESIZE*5))
 
 /* Virtual boot partition support */
 #ifdef VIRTUAL_BOOT_PARTITION
@@ -823,7 +826,8 @@ uint8_t escGetch(void) {
 }
 
 static void escPutch(char ch) {
-  if (ch >= 0x7d || (uint8_t)ch < 0x13) {
+  //if (ch >= 0x7d || (uint8_t)ch <= 0x13) {
+  if (ch == 0x7d || ch == 0x7e || ch == 0x11 || ch == 0x13) {
     uartPutch(0x7d);
     ch ^= 0x20;
   }
@@ -871,8 +875,7 @@ void sendAck(const uint8_t sequence) {
 
 static __attribute__((__noinline__))
 uint8_t poll(uint8_t waitForAck) {
-  uint8_t sawInvalid = 0;
-  uint8_t address[10];
+  register uint8_t sawInvalid = 0;
   for (;;) {
     /* Start delimiter */
     if (uartGetch() != 0x7e)
@@ -887,39 +890,42 @@ uint8_t poll(uint8_t waitForAck) {
     /* Assume the length reaches the next check. */
     /* if (length < 12) continue; */
 
-    if (escGetch() != 0x90)
-      /* ZigBee Receive packet */
-      continue;
+    register uint8_t checksum = 0xff;
 
-    register uint8_t checksum = 0xff - 0x90;
-
-    /* 64-bit address and 16-bit address */
+    /*
+     * 0 = 0x90, 1-10 = 64-bit address and 16-bit address, 11 = options
+     * 12 = data...
+     */
+#define PACKOFF_ADDRESS 1
+#define PACKOFF_PAYLOAD 12
     uint8_t index;
-    for (index = 0; index < 10; index++) {
-      uint8_t addrByte = escGetch();
-      address[index] = addrByte;
-      checksum -= addrByte;
+    for (index = 0; index < length; index++) {
+      uint8_t dataByte = escGetch();
+      packet[index] = dataByte;
+      checksum -= dataByte;
     }
 
-    /* Receive options */
-    checksum -= escGetch();
+    if (checksum != escGetch())
+      /* Checksum mismatch */
+      continue;
+
+    if (packet[0] != 0x90)
+      /* ZigBee Receive packet */
+      continue;
 
     /* [REQUEST = 1] [SEQUENCE] [FIRMWARE = 23] [DATA...] */
     /* [ACK = 0] [SEQUENCE] */
 
-    if (length == 12 + 2) {
+    const uint8_t packetType = packet[PACKOFF_PAYLOAD];
+    const uint8_t sequence = packet[PACKOFF_PAYLOAD + 1];
+
+    if (length == PACKOFF_PAYLOAD + 2) {
       if (!waitForAck)
         /* We can't receive ACK right now, drop it. */
         continue;
 
-      if (escGetch() != 0)
+      if (packetType != 0)
         /* ACK */
-        continue;
-
-      const uint8_t sequence = escGetch();
-      checksum -= sequence;
-
-      if (checksum != escGetch())
         continue;
 
       /* sequence is ACK'd */
@@ -931,36 +937,23 @@ uint8_t poll(uint8_t waitForAck) {
         return 1;
 
       continue;
-    } else if (length == 12 + 4) {
-      {
-        uint8_t frameType = escGetch();
-        if (frameType != 1)
-          /* REQUEST */
-          continue;
-        checksum -= frameType;
-      }
+    } else if (length >= PACKOFF_PAYLOAD + 4) {
+      /* [REQUEST] [SEQUENCE] [FIRMWARE_DELIVER] [DATA] [[DATA]*] */
 
-      const uint8_t sequence = escGetch();
-      checksum -= sequence;
-
-      {
-        const uint8_t type = escGetch();
-        if (type != 23)
-          /* FIRMWARE_DELIVER */
-          continue;
-        checksum -= type;
-      }
-
-      const uint8_t data = escGetch();
-      checksum -= data;
-
-      if (checksum != escGetch())
-        /* Checksum mismatch */
+      if (packetType != 1)
+        /* REQUEST */
         continue;
 
-      uint8_t index;
-      for (index = 0; index < 10; index++)
-        lastAddress[index] = address[index];
+      const uint8_t type = packet[PACKOFF_PAYLOAD + 2];
+      if (type != 23)
+        /* FIRMWARE_DELIVER */
+        continue;
+
+      {
+        uint8_t index;
+        for (index = 0; index < 10; index++)
+          lastAddress[index] = packet[index + 1];
+      }
 
       uint8_t lastSequence = lastIncomingSequence;
       uint8_t nextSequence = lastSequence;
@@ -971,6 +964,31 @@ uint8_t poll(uint8_t waitForAck) {
         if (sawInvalid++)
           sendAck(lastSequence);
         continue;
+      }
+
+      {
+        uint8_t index;
+        for (index = 0; index < 10; index++)
+          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
+      }
+
+      if (frameMode != FRAME_FRAME)
+        /*
+         * This means the buffer already has data in it, which means
+         * we cannot receive more data yet.  We can't ACK the data, we
+         * have to drop it.
+         *
+         * This will generally never happen.
+         */
+        continue;
+
+      {
+        uint8_t index;
+        uint8_t dataLength = length - PACKOFF_PAYLOAD - 3;
+        for (index = 0; index < dataLength; index++)
+          packetBuffer[dataLength - 1 - index] =
+            packet[PACKOFF_PAYLOAD + 3 + index];
+        frameMode = dataLength;
       }
 
       if (!waitForAck) {
@@ -986,14 +1004,14 @@ uint8_t poll(uint8_t waitForAck) {
         /* data is valid, sequence is correct. */
         lastIncomingSequence = nextSequence;
 
-        return data;
+        return 0;
       }
     }
   }
 }
 
 void putch(const char ch) {
-  if (frameMode != FRAME_FRAME) {
+  if (frameMode == FRAME_UART) {
     uartPutch(ch);
     return;
   }
@@ -1041,8 +1059,15 @@ uint8_t getch(void) {
       }
       /* FALLTHROUGH */
     }
+  case FRAME_FRAME:
+    /*
+     * NB: Will not return unless the packet buffer has been
+     * re-populated, so we can then immediately read from the buffer.
+     */
+    poll(0);
+    /* FALLTHROUGH */
   default:
-    return poll(0);
+    return packetBuffer[--frameMode];
   }
 }
 
