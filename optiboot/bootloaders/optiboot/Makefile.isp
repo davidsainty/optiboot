@@ -43,8 +43,8 @@ AVRDUDE_CONF ?= -C$(TOOLROOT)/avr/etc/avrdude.conf
 # These are parameters for using an Arduino with the ArduinoISP sketch
 #  as the programmer.  On a mac, for a particular Uno as programmer.
 ISPTOOL	?= stk500v1
-ISPPORT	?= /dev/tty.usbserial-FTD61T6Q
-ISPSPEED ?= -b19200
+ISPPORT	?= /dev/ttyACM0
+ISPSPEED ?= -b9600
 
 
 
