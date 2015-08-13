@@ -956,7 +956,7 @@ uint8_t poll(uint8_t waitForAck) {
 
       uint8_t lastSequence = lastIncomingSequence;
       uint8_t nextSequence = lastSequence;
-      while (++nextSequence == 0);
+      while ((++nextSequence & 0xff) == 0);
 
       if (sequence != nextSequence) {
         /* Wrong sequence */
@@ -991,7 +991,7 @@ void putch(const char ch) {
   }
 
   uint8_t sequence = lastOutgoingSequence;
-  while (++sequence == 0);
+  while ((++sequence & 0xff) == 0);
   lastOutgoingSequence = sequence;
 
   do {
