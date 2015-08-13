@@ -681,7 +681,14 @@ int main(void) {
     }
     else if (ch == STK_LEAVE_PROGMODE) { /* 'Q' */
       // Adaboot no-wait mod
-      watchdogConfig(WATCHDOG_16MS);
+      /*
+       * Setting the watchdog fast on STK_LEAVE_PROGMODE gives just
+       * enough time to deliver the response to STK_LEAVE_PROGMODE
+       * over a standard local serial link, but nowhere near enough
+       * time to respond over wireless, which causes avrdude to hang
+       * on exit.
+       */
+      /*watchdogConfig(WATCHDOG_16MS);*/
       verifySpace();
     }
     else {
