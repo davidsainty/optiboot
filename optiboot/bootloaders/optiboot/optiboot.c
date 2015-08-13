@@ -679,18 +679,19 @@ int main(void) {
       putch(SIGNATURE_1);
       putch(SIGNATURE_2);
     }
+#if 0
+    /*
+     * Setting the watchdog fast on STK_LEAVE_PROGMODE gives just
+     * enough time to deliver the response to STK_LEAVE_PROGMODE over
+     * a standard local serial link, but nowhere near enough time to
+     * respond over wireless, which causes avrdude to hang on exit.
+     */
     else if (ch == STK_LEAVE_PROGMODE) { /* 'Q' */
       // Adaboot no-wait mod
-      /*
-       * Setting the watchdog fast on STK_LEAVE_PROGMODE gives just
-       * enough time to deliver the response to STK_LEAVE_PROGMODE
-       * over a standard local serial link, but nowhere near enough
-       * time to respond over wireless, which causes avrdude to hang
-       * on exit.
-       */
-      /*watchdogConfig(WATCHDOG_16MS);*/
+      watchdogConfig(WATCHDOG_16MS);
       verifySpace();
     }
+#endif
     else {
       // This covers the response to commands like STK_ENTER_PROGMODE
       verifySpace();
