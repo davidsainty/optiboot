@@ -965,18 +965,21 @@ uint8_t poll(uint8_t waitForAck) {
         continue;
       }
 
-      sendAck(nextSequence);
-
-      /* data is valid, sequence is correct. */
-      lastIncomingSequence = nextSequence;
-
-      if (!waitForAck)
+      if (!waitForAck) {
         /*
-         * If we receive a new data packet whilst we are waiting for
-         * an outstanding ACK, drop it.  This needs attention, surely
-         * an ACK and data packet may be reordered in the air.
+         * If we receive data whilst waiting for an ACK, drop the data
+         * packet.  We will resend our possibly-lost data transmission
+         * after receiving two incorrect ACK resends, and we will
+         * re-receive the data packet eventually so long as we don't
+         * ACK it.
          */
+        sendAck(nextSequence);
+
+        /* data is valid, sequence is correct. */
+        lastIncomingSequence = nextSequence;
+
         return data;
+      }
     }
   }
 }
