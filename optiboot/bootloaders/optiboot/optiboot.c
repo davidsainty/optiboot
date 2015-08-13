@@ -815,7 +815,7 @@ uint8_t escGetch(void) {
 }
 
 static void escPutch(char ch) {
-  if (ch >= 0x7d || (uint8_t)ch > 0x20) {
+  if (ch >= 0x7d || (uint8_t)ch < 0x13) {
     uartPutch(0x7d);
     ch ^= 0x20;
   }
