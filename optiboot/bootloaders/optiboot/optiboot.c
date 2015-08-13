@@ -1012,16 +1012,20 @@ uint8_t getch(void) {
   case FRAME_UNKNOWN:
     {
       uint8_t ch = uartGetch();
-      if (ch == 0x30) {
+      switch (ch) {
+      case 0x30:
         /* Cmnd_STK_GET_SYNC */
         frameMode = FRAME_UART;
         return ch;
-      } else if (ch != 0x7e) {
+      case 0x7e:
+        /* API Frame start */
+        frameMode = FRAME_FRAME;
+        break;
+      default:
         goto loop;
       }
+      /* FALLTHROUGH */
     }
-    frameMode = FRAME_FRAME;
-    /* FALLTHROUGH */
   default:
     return poll(0);
   }
