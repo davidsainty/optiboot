@@ -843,7 +843,9 @@ uint8_t txHeader(const uint8_t length, const int8_t type,
   escPutch(0); /* Length MSB */
   escPutch(length); /* Length LSB */
 
-  uint8_t checksum = 0xff - 0x10 - 0 - 0x01 - 0;
+#define XBEE_BROADCAST_RADIUS 0
+#define XBEE_TX_OPTIONS 0
+  uint8_t checksum = 0xff - 0x10 - 0 - XBEE_BROADCAST_RADIUS - XBEE_TX_OPTIONS;
   escPutch(0x10); /* ZigBee Transmit Request */
   escPutch(0); /* Delivery sequence */
 
@@ -855,8 +857,8 @@ uint8_t txHeader(const uint8_t length, const int8_t type,
     escPutch(addrByte);
   }
 
-  escPutch(0); /* Broadcast radius */
-  escPutch(0); /* Options */
+  escPutch(XBEE_BROADCAST_RADIUS); /* Broadcast radius */
+  escPutch(XBEE_TX_OPTIONS); /* Options */
 
   checksum -= type;
   escPutch(type); /* REQUEST/ACK */
