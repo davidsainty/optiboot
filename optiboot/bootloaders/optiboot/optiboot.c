@@ -1046,8 +1046,29 @@ uint8_t getch(void) {
         /* Cmnd_STK_GET_SYNC */
         frameMode = FRAME_UART;
         return ch;
+
       case 0x7e:
-        /* API Frame start */
+        /*
+         * API Frame start
+         *
+         * This is the first character of every frame.  If we see
+         * this, we are probably seeing a new frame arriving.
+         */
+      case 0x90:
+        /*
+         * RX API ID
+         *
+         * If we are unlucky we might not see a clean 0x7e on the
+         * serial port.  But if we see 0x90 here, it probably means
+         * that we missed the frame start of the first frame type we
+         * expect to see.
+         *
+         * If we miss the 0x90 too, the chances of accidentally
+         * matching a 0x30 go up.  In particular, the first 0x90
+         * packet we see is almost certainly delivering a 0x30 in its
+         * payload.
+         */
+
         frameMode = FRAME_FRAME;
         break;
       default:
