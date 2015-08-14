@@ -952,7 +952,7 @@ uint8_t poll(uint8_t waitForAck) {
       {
         uint8_t index;
         for (index = 0; index < 10; index++)
-          lastAddress[index] = packet[index + 1];
+          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
       }
 
       uint8_t lastSequence = lastIncomingSequence;
@@ -964,12 +964,6 @@ uint8_t poll(uint8_t waitForAck) {
         if (sawInvalid++)
           sendAck(lastSequence);
         continue;
-      }
-
-      {
-        uint8_t index;
-        for (index = 0; index < 10; index++)
-          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
       }
 
       if (frameMode != FRAME_FRAME)
