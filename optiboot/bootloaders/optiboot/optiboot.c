@@ -855,7 +855,7 @@ uint8_t txHeader(const uint8_t length, const int8_t type,
     escPutch(addrByte);
   }
 
-  escPutch(0x01); /* Broadcast radius */
+  escPutch(0); /* Broadcast radius */
   escPutch(0); /* Options */
 
   checksum -= type;
