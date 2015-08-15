@@ -1003,7 +1003,11 @@ uint8_t poll(uint8_t waitForAck) {
   }
 }
 
-void pushBuffer() {
+static __attribute__((noinline)) 
+void pushBuffer(const uint8_t max) {
+  if (outputIndex < max)
+    return;
+
   uint8_t sequence = lastOutgoingSequence;
   while ((++sequence & 0xff) == 0);
   lastOutgoingSequence = sequence;
@@ -1025,8 +1029,7 @@ void putch(const char ch) {
   }
 
   outputText[outputIndex++] = ch;
-  if (outputIndex >= 64)
-    pushBuffer();
+  pushBuffer(64);
 }
 
 /*
@@ -1034,8 +1037,7 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
-  if (outputIndex)
-    pushBuffer();
+  pushBuffer(0);
 
  loop:
   switch (frameMode) {
