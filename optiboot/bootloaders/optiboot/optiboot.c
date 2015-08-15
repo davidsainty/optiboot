@@ -1005,7 +1005,7 @@ uint8_t poll(uint8_t waitForAck) {
 
 static __attribute__((noinline)) 
 void pushBuffer(const uint8_t max) {
-  if (outputIndex < max)
+  if (outputIndex <= max)
     return;
 
   uint8_t sequence = lastOutgoingSequence;
