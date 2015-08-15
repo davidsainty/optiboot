@@ -402,10 +402,14 @@ void appStart(uint8_t rstFlags) __attribute__ ((naked));
 #define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
 #define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
 #define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
-#define lastAddress ((uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
+#define outputIndex (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+3))
 
 #define packetBuffer ((uint8_t*)(RAMSTART+SPM_PAGESIZE*4))
 #define packet ((uint8_t*)(RAMSTART+SPM_PAGESIZE*5))
+#define outputBuffer ((uint8_t*)(RAMSTART+SPM_PAGESIZE*6))
+#define lastAddress (&outputBuffer[2])
+#define outputPayload (&outputBuffer[14])
+#define outputText (&outputBuffer[17])
 
 /* Virtual boot partition support */
 #ifdef VIRTUAL_BOOT_PARTITION
@@ -533,6 +537,7 @@ int main(void) {
   frameMode = FRAME_UNKNOWN;
   lastOutgoingSequence = 0;
   lastIncomingSequence = 0;
+  outputIndex = 0;
 
   /* Forever loop: exits by causing WDT reset */
   for (;;) {
@@ -834,45 +839,37 @@ static void escPutch(char ch) {
   uartPutch(ch);
 }
 
-/* Length = TXHEADER_BYTES + additional data - checksum byte */
-#define TXHEADER_BYTES 16
+#define TXHEADER_BYTES 14
 static __attribute__((__noinline__))
-uint8_t txHeader(const uint8_t length, const int8_t type,
-                 const int8_t sequence) {
+void transmit(const uint8_t length) {
+#define XBEE_BROADCAST_RADIUS 0
+#define XBEE_TX_OPTIONS 0
+  outputBuffer[0] = 0x10; /* ZigBee Transmit Request */
+  outputBuffer[1] = 0; /* Delivery sequence */
+  /* outputBuffer[2..11] = lastAddress */
+  outputBuffer[12] = XBEE_BROADCAST_RADIUS; /* Broadcast radius */
+  outputBuffer[13] = XBEE_TX_OPTIONS; /* Options */
+
   uartPutch(0x7e);
   escPutch(0); /* Length MSB */
   escPutch(length); /* Length LSB */
 
-#define XBEE_BROADCAST_RADIUS 0
-#define XBEE_TX_OPTIONS 0
-  uint8_t checksum = 0xff - 0x10 - 0 - XBEE_BROADCAST_RADIUS - XBEE_TX_OPTIONS;
-  escPutch(0x10); /* ZigBee Transmit Request */
-  escPutch(0); /* Delivery sequence */
-
-  /* 64-bit address and 16-bit address */
+  uint8_t checksum = 0xff;
   uint8_t index;
-  for (index = 0; index < 10; index++) {
-    uint8_t addrByte = lastAddress[index];
-    checksum -= addrByte;
-    escPutch(addrByte);
+  for (index = 0; index < length; index++) {
+    const uint8_t val = outputBuffer[index];
+    checksum -= val;
+    escPutch(val);
   }
 
-  escPutch(XBEE_BROADCAST_RADIUS); /* Broadcast radius */
-  escPutch(XBEE_TX_OPTIONS); /* Options */
-
-  checksum -= type;
-  escPutch(type); /* REQUEST/ACK */
-
-  checksum -= sequence;
-  escPutch(sequence); /* Sequence */
-
-  return checksum;
+  escPutch(checksum);
 }
 
 static __attribute__((__noinline__))
 void sendAck(const uint8_t sequence) {
-  uint8_t checksum = txHeader(TXHEADER_BYTES, 0 /* ACK */, sequence);
-  escPutch(checksum);
+  outputPayload[0] = 0 /* ACK */;
+  outputPayload[1] = sequence;
+  transmit(TXHEADER_BYTES + 2);
 }
 
 static __attribute__((__noinline__))
@@ -1006,27 +1003,30 @@ uint8_t poll(uint8_t waitForAck) {
   }
 }
 
+void pushBuffer() {
+  uint8_t sequence = lastOutgoingSequence;
+  while ((++sequence & 0xff) == 0);
+  lastOutgoingSequence = sequence;
+
+  do {
+    outputPayload[0] = 1 /* REQUEST */;
+    outputPayload[1] = sequence;
+    outputPayload[2] = 24 /* FIRMWARE_REPLY */;
+    transmit(TXHEADER_BYTES + 3 + outputIndex);
+  } while (poll(sequence));
+
+  outputIndex = 0;
+}
+
 void putch(const char ch) {
   if (frameMode == FRAME_UART) {
     uartPutch(ch);
     return;
   }
 
-  uint8_t sequence = lastOutgoingSequence;
-  while ((++sequence & 0xff) == 0);
-  lastOutgoingSequence = sequence;
-
-  do {
-    uint8_t checksum = txHeader(TXHEADER_BYTES + 2, 1 /* REQUEST */, sequence);
-
-    checksum -= 24 /* FIRMWARE_REPLY */;
-    escPutch(24); /* FIRMWARE_REPLY */
-
-    checksum -= ch;
-    escPutch(ch); /* Data */
-
-    escPutch(checksum);
-  } while (poll(sequence));
+  outputText[outputIndex++] = ch;
+  if (outputIndex >= 64)
+    pushBuffer();
 }
 
 /*
@@ -1034,6 +1034,9 @@ void putch(const char ch) {
  * protocol here first.
  */
 uint8_t getch(void) {
+  if (outputIndex)
+    pushBuffer();
+
  loop:
   switch (frameMode) {
   case FRAME_UART:
