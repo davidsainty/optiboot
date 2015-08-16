@@ -1,37 +1,13 @@
-## Optiboot Bootloader for Arduino and Atmel AVR ##
+## XBee Series 2 API Bootloader for Arduino and Atmel AVR ##
 
-![http://optiboot.googlecode.com/files/optiboot.png](http://optiboot.googlecode.com/files/optiboot.png)
+This bootloader provides XBee Series 2 Over-The-Air firmware update capability to Atmel AVR devices, as well as supporting direct firmware update via the standard Optiboot protocol.
 
-Optiboot is an easy to install upgrade to the Arduino bootloader within Arduino boards. It provides the following features:
+It provides the following features:
 
-  * Allows larger sketches. Optiboot is a quarter of the size of the default bootloader, freeing 1.5k of extra space.
-  * Makes your sketches upload faster. Optiboot operates at higher baud rates and has streamlined programming.
-  * Adaboot performance improvements. Optiboot runs your sketches sooner, with no watchdog issues.
-  * Compatible with 168 and 328 Arduinos including Lilypad, Pro, Nano
-  * Believed to work with ATmega1280 ("Mega"), ATmega644 ("Sanguino"), and ATmega1284 ("Mighty")
-  * Supports several additional AVR chips (ATmega88, ATmega32)
-
-Optiboot is now installed by default on the Arduino Uno. It can be installed on all older mega8, 168 or 328 based Arduinos.
-
-## Additional Documentation
-More detailed documentation is being added (slowly) to the [repository wiki](https://github.com/Optiboot/optiboot/wiki).
-
-## To install into the Arduino software ##
-  1. Download the latest using Git or the Zip download feature of GutHub.  If you download as a zip, also extract it.
-  1. You will need to be using a recent version of the [Arduino environment](http://arduino.cc), version 18 or later.
-  1. Create a 'hardware' directory inside your sketches folder.
-  1. Copy the optiboot directory into the hardware directory.
-  1. Restart the Arduino software. New boards will appear in the Tools>Board menu.
-
-## To burn Optiboot onto an Arduino board ##
-  1. Select the appropriate Optiboot board type (or non-Optiboot if you want to change back)
-  1. Connect your Arduino to an ISP programmer [[Installing]]
-  1. Use the 'Burn Bootloader' item in Arduino.
-  1. You can then upload sketches as normal, using the Optiboot board type.
-
-----
-
-> Although it has evolved considerably, Optiboot builds on the original work of Jason P. Kyle (stk500boot.c), [Arduino group (bootloader)](http://arduino.cc), [Spiff (1K bootloader)](http://spiffie.org/know/arduino_1k_bootloader/bootloader.shtml), [AVR-Libc group](http://nongnu.org/avr-libc) and [Ladyada (Adaboot)](http://www.ladyada.net/library/arduino/bootloader.html).
-
-> _Optiboot is the work of Peter Knight (aka Cathedrow). Despite some misattributions, it is not sponsored or supported by any organisation or company including Tinker London, Tinker.it! and Arduino._  
-> Maintenance of optiboot was taken over by Bill Westfield (aka WestfW) in 2011.
+  * Bootloader fits within 1kB, larger than Optiboot's smallest build, but still half the size of a standard Arduino bootlooader.
+  * Reasonably fast Over-The-Air firware updates, less than three minutes for a 20kB firmware image.
+  * Natively supports XBee API-mode protocol - no need to use AT-mode XBee firmware.
+  * Over-The-Air updates are secure: XBee security models apply - so firmware updates are encrypted and authenticated with AES encryption if the Zigbee network is configured with encryption.
+  * Over-The-Air updates are robust: The protocol uses direct addressing, so the other devices on the Zigbee network are unaffected.  You could even Over-The-Air update firmware on multiple devices concurrently.
+  * Full access to Optiboot-supported bootloader facilities with a direct connection via standard avrdude software: The chip can still be firmware updated via a normal Arduino and unmodified avrdude software without replacing the bootloader.
+  * Full access to Optiboot-supported bootloader facilities Over-The-Air via patched avrdude software.
