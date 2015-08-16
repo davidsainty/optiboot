@@ -969,7 +969,10 @@ uint8_t poll(uint8_t waitForAck) {
         /*
          * This means the buffer already has data in it, which means
          * we cannot receive more data yet.  We can't ACK the data, we
-         * have to drop it.
+         * have to drop it.  We will resend our possibly-lost data
+         * transmission after receiving two incorrect ACK resends, and
+         * we will re-receive the data packet eventually so long as we
+         * don't ACK it now.
          *
          * This will generally never happen.
          */
@@ -984,19 +987,17 @@ uint8_t poll(uint8_t waitForAck) {
         frameMode = dataLength;
       }
 
+      sendAck(nextSequence);
+
+      /* data is valid, sequence is correct. */
+      lastIncomingSequence = nextSequence;
+
       if (!waitForAck) {
         /*
-         * If we receive data whilst waiting for an ACK, drop the data
-         * packet.  We will resend our possibly-lost data transmission
-         * after receiving two incorrect ACK resends, and we will
-         * re-receive the data packet eventually so long as we don't
-         * ACK it.
+         * We received in sequence data.  We successfully buffered it
+         * and ACK'd it, but we can only return success if we were
+         * waiting for data, and not waiting for an ACK.
          */
-        sendAck(nextSequence);
-
-        /* data is valid, sequence is correct. */
-        lastIncomingSequence = nextSequence;
-
         return 0;
       }
     }
