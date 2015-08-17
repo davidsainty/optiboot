@@ -17,7 +17,8 @@ It provides the following features:
 
 Yes it does, although it is of course a little slower getting going if the
 remote device is sleeping.  Once it is going it appears to run something like
-25% slower than a normal router mode device.
+25% slower than a normal router mode device, E.g. a little over three minutes
+for a 20kB update, rather than a little under three minutes.
 
 #### Does it work with XBee modules in AT mode? ####
 
