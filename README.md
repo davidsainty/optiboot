@@ -11,3 +11,8 @@ It provides the following features:
   * Over-The-Air updates are robust: The protocol uses direct addressing, so the other devices on the Zigbee network are unaffected.  You could even Over-The-Air update firmware on multiple devices concurrently.
   * Full access to Optiboot-supported bootloader facilities with a direct connection via standard avrdude software: The chip can still be firmware updated via a normal Arduino and unmodified avrdude software without replacing the bootloader.
   * Full access to Optiboot-supported bootloader facilities Over-The-Air via patched avrdude software.
+
+
+#### Does it work with XBee modules in endpoint mode? ####
+
+Yes it does, although it is of course a little slower getting going if the remote device is sleeping.  Once it is going it appears to run something like 25% slower than a normal router mode device.
