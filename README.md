@@ -74,6 +74,14 @@ environment with more than two XBee devices, I haven't looked at AT mode very
 carefully.
 
 
+#### Are there any limits on the number of Zigbee nodes in the network? ####
+
+There are no known limits.  I currently have eight active XBee devices on the
+same Zigbee network, meshed over some fairly complicated terrain, with a mix
+of router and endpoint devices, and can update the firmware successfully and
+reliably across the network.
+
+
 #### Can this bootloader be used without any XBee devices? ####
 
 Yes it can.  In two ways, in fact:
