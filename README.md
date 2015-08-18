@@ -23,9 +23,9 @@ It provides the following features:
     Over-The-Air update firmware on multiple devices concurrently.
 
   * Full access to Optiboot-supported bootloader facilities with a direct
-    connection via standard avrdude software: The chip can still be firmware
-    updated via a normal Arduino and unmodified avrdude software without
-    replacing the bootloader.
+    connection via standard avrdude software: This bootloader detects an
+    attempt to program via the standard Arduino/avrdude firmware update
+    protocol and automatically switches to the standard Optiboot protocol.
 
   * Full access to Optiboot-supported bootloader facilities Over-The-Air via
     patched avrdude software.
