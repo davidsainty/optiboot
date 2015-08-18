@@ -4,7 +4,7 @@ This bootloader provides XBee Series 2 Over-The-Air firmware update capability t
 
 It provides the following features:
 
-  * Bootloader fits within 1kB: This is larger than Optiboot's smallest build, but is still half the size of a standard Arduino bootloader.
+  * Bootloader fits within 1kB: This is larger than [Optiboot's](https://github.com/Optiboot/optiboot) smallest build, but is still half the size of a standard Arduino bootloader.
   * Reasonably fast Over-The-Air firmware updates: Less than three minutes to write a 20kB firmware image.
   * Natively supports XBee API-mode protocol: No need to use AT-mode XBee firmware.
   * Over-The-Air updates are secure: XBee security models apply - so firmware updates are encrypted and authenticated with AES encryption if the Zigbee network is configured with encryption.
