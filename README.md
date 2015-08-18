@@ -25,3 +25,18 @@ for a 20kB update, rather than a little under three minutes.
 Not intentionally.  Because the AT firmware isn't really usable in any
 environment with more than two XBee devices, I haven't looked at AT mode very
 carefully.
+
+#### What hardware support does it need? ####
+
+The Atmega device needs to be able to communicate serially with the XBee.
+This requires connecting the XBee DOUT (pin 2) to the Atmega RXD (Atmega328P
+pin 2), and connecting the XBee DIN (pin 3) to the Atmega TXD (Atmega328P pin
+3).  You've probably already done that.
+
+Apart from the serial link, there in only one additional connection required:
+We need a mechanism to hard-reset the Atmega to enter the bootloader.  This is
+supported by connecting the XBee DIO3 pin (pin 17) to the Atmega RESET pin
+(Atmega328P pin 1).  Optionally, a 0.1uF capacitor can be included in the
+reset pin connection - this isn't mandatory, but including the capacitor does
+eliminate the possibility of the XBee accidentally holding the Atmega in a
+permanent state of reset.
