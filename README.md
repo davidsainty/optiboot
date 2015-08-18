@@ -46,9 +46,8 @@ reset pin connection - this isn't mandatory, but including the capacitor does
 eliminate the possibility of the XBee accidentally holding the Atmega in a
 permanent state of reset.
 
-This is intentionally identical circuitry to [SparkFun's
-tutorial](https://www.sparkfun.com/tutorials/122) for use with XBee Series 1
-devices.
+This is intentionally identical circuitry to [SparkFun's tutorial]
+(https://www.sparkfun.com/tutorials/122) for use with XBee Series 1 devices.
 
 
 #### Does it work with XBee modules in endpoint mode? ####
@@ -64,3 +63,8 @@ for a 20kB update, rather than a little under three minutes.
 Not intentionally.  Because the AT firmware isn't really usable in any
 environment with more than two XBee devices, I haven't looked at AT mode very
 carefully.
+
+
+#### Can this bootloader be used without any XBee devices? ####
+
+Yes.
