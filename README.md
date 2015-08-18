@@ -4,9 +4,9 @@ This bootloader provides XBee Series 2 Over-The-Air firmware update capability t
 
 It provides the following features:
 
-  * Bootloader fits within 1kB: This is larger than
-    [Optiboot's](https://github.com/Optiboot/optiboot) smallest build, but is
-    still half the size of a standard Arduino bootloader.
+  * Bootloader fits within 1kB: This is larger than [Optiboot's]
+    (https://github.com/Optiboot/optiboot) smallest build, but is still half
+    the size of a standard Arduino bootloader.
 
   * Reasonably fast Over-The-Air firmware updates: Less than three minutes to
     write a 20kB firmware image.
@@ -23,9 +23,10 @@ It provides the following features:
     Over-The-Air update firmware on multiple devices concurrently.
 
   * Full access to Optiboot-supported bootloader facilities with a direct
-    connection via standard avrdude software: This bootloader detects an
-    attempt to program via the standard Arduino/avrdude firmware update
-    protocol and automatically switches to the standard Optiboot protocol.
+    connection via standard [avrdude] (http://www.nongnu.org/avrdude/)
+    software: This bootloader detects an attempt to program via the standard
+    Arduino/avrdude firmware update protocol and automatically switches to the
+    standard Optiboot protocol.
 
   * Full access to Optiboot-supported bootloader facilities Over-The-Air via
     patched avrdude software.
@@ -67,4 +68,15 @@ carefully.
 
 #### Can this bootloader be used without any XBee devices? ####
 
-Yes.
+Yes it can.  In two ways, in fact:
+
+  1. You can still use it as if it were a normal Optiboot/Arduino bootloader,
+     with the caveat that the default serial baud rate is 9600 baud, to match
+     the XBee default.
+
+  1. You can also bootload, with the avrdude xbee programmer directly, by not
+     giving a Zigbee address.  This is useful for diagnosis and proof of
+     concept testing.  It may also be useful for bootloading over unreliable
+     serial links (E.g. AT mode XBee links), as the XBee bootloader protocol
+     includes checksums, is packet-based and can recover from lost or
+     corrupted packets in the serial data stream.
