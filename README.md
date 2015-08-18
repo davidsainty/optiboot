@@ -40,3 +40,7 @@ supported by connecting the XBee DIO3 pin (pin 17) to the Atmega RESET pin
 reset pin connection - this isn't mandatory, but including the capacitor does
 eliminate the possibility of the XBee accidentally holding the Atmega in a
 permanent state of reset.
+
+This is intentionally identical circuitry to [SparkFun's
+tutorial](https://www.sparkfun.com/tutorials/122) for use with XBee Series 1
+devices.
