@@ -31,19 +31,6 @@ It provides the following features:
     patched avrdude software.
 
 
-#### Does it work with XBee modules in endpoint mode? ####
-
-Yes it does, although it is of course a little slower getting going if the
-remote device is sleeping.  Once it is going it appears to run something like
-25% slower than a normal router mode device, E.g. a little over three minutes
-for a 20kB update, rather than a little under three minutes.
-
-#### Does it work with XBee modules in AT mode? ####
-
-Not intentionally.  Because the AT firmware isn't really usable in any
-environment with more than two XBee devices, I haven't looked at AT mode very
-carefully.
-
 #### What hardware support does it need? ####
 
 The Atmega device needs to be able to communicate serially with the XBee.
@@ -62,3 +49,18 @@ permanent state of reset.
 This is intentionally identical circuitry to [SparkFun's
 tutorial](https://www.sparkfun.com/tutorials/122) for use with XBee Series 1
 devices.
+
+
+#### Does it work with XBee modules in endpoint mode? ####
+
+Yes it does, although it is of course a little slower getting going if the
+remote device is sleeping.  Once it is going it appears to run something like
+25% slower than a normal router mode device, E.g. a little over three minutes
+for a 20kB update, rather than a little under three minutes.
+
+
+#### Does it work with XBee modules in AT mode? ####
+
+Not intentionally.  Because the AT firmware isn't really usable in any
+environment with more than two XBee devices, I haven't looked at AT mode very
+carefully.
