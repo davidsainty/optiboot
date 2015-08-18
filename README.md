@@ -51,6 +51,14 @@ This is intentionally identical circuitry to [SparkFun's tutorial]
 (https://www.sparkfun.com/tutorials/122) for use with XBee Series 1 devices.
 
 
+#### Are there any limits on which XBee can bootload which XBee? ####
+
+No.  In particular, it doesn't matter if the coordinator node is a separate
+and unrelated node.  Any XBee address can bootload to any other
+Zigbee-networked XBee-hosted AVR device, so long as they share encryption
+keys.
+
+
 #### Does it work with XBee modules in endpoint mode? ####
 
 Yes it does, although it is of course a little slower getting going if the
