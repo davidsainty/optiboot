@@ -4,8 +4,8 @@ This bootloader provides XBee Series 2 Over-The-Air firmware update capability t
 
 It provides the following features:
 
-  * Bootloader fits within 1kB: This is larger than Optiboot's smallest build, but is still half the size of a standard Arduino bootlooader.
-  * Reasonably fast Over-The-Air firware updates: Less than three minutes to write a 20kB firmware image.
+  * Bootloader fits within 1kB: This is larger than Optiboot's smallest build, but is still half the size of a standard Arduino bootloader.
+  * Reasonably fast Over-The-Air firmware updates: Less than three minutes to write a 20kB firmware image.
   * Natively supports XBee API-mode protocol: No need to use AT-mode XBee firmware.
   * Over-The-Air updates are secure: XBee security models apply - so firmware updates are encrypted and authenticated with AES encryption if the Zigbee network is configured with encryption.
   * Over-The-Air updates are robust: The protocol uses direct addressing, so the other devices on the Zigbee network are unaffected.  You could even Over-The-Air update firmware on multiple devices concurrently.
@@ -33,7 +33,7 @@ This requires connecting the XBee DOUT (pin 2) to the Atmega RXD (Atmega328P
 pin 2), and connecting the XBee DIN (pin 3) to the Atmega TXD (Atmega328P pin
 3).  You've probably already done that.
 
-Apart from the serial link, there in only one additional connection required:
+Apart from the serial link, there is only one additional connection required:
 We need a mechanism to hard-reset the Atmega to enter the bootloader.  This is
 supported by connecting the XBee DIO3 pin (pin 17) to the Atmega RESET pin
 (Atmega328P pin 1).  Optionally, a 0.1uF capacitor can be included in the
