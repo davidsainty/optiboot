@@ -1,6 +1,6 @@
-## XBee Series 2 API Bootloader for Arduino and Atmel AVR ##
+## XBeeBoot: XBee Series 2 API Bootloader for Arduino and Atmel AVR ##
 
-This bootloader provides XBee Series 2 Over-The-Air firmware update capability to Atmel AVR devices, as well as supporting direct firmware update via the standard Optiboot protocol.
+The XBeeBoot bootloader provides XBee Series 2 Over-The-Air firmware update capability to Atmel AVR devices, as well as supporting direct firmware update via the standard Optiboot protocol.
 
 It provides the following features:
 
