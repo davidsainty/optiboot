@@ -120,3 +120,10 @@ Yes it can.  In two ways, in fact:
     doesn't have that feature as standard, so you will need to apply the
     [patch] (https://savannah.nongnu.org/patch/index.php?8719) yourself and
     rebuild avrdude to be able to perform Over-The-Air firmware updates.
+
+
+----
+
+> XBeeBoot is an amalgamation of an Over-The-Air protocol by David Sainty, and a core bootloader based directly on Optiboot.
+>
+> Optiboot builds on the original work of Jason P. Kyle (stk500boot.c), [Arduino group (bootloader)](http://arduino.cc), [Spiff (1K bootloader)](http://spiffie.org/know/arduino_1k_bootloader/bootloader.shtml), [AVR-Libc group](http://nongnu.org/avr-libc), [Ladyada (Adaboot)](http://www.ladyada.net/library/arduino/bootloader.html), Peter Knight (aka Cathedrow) and [Bill Westfield (aka WestfW)] (https://github.com/Optiboot/optiboot).
