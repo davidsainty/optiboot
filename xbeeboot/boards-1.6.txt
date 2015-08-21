@@ -1,28 +1,28 @@
 #
-# Boards.txt file for Optiboot platforms, in format for Arduino 1.5.x and later.
+# Boards.txt file for XBeeBoot platforms, in format for Arduino 1.5.x and later.
 #
 # See: http://github.com/Arduino/arduino/
 
-name=[Optiboot]
+name=[XBeeBoot]
 version=6.2
 
 ##############################################################
-##  Optiboot on 28-pin processors (atmega8/88/168/328/etc)
+##  XBeeBoot on 28-pin processors (atmega8/88/168/328/etc)
 
 menu.cpu=Processor
 menu.mhz=CPU Speed
 
-optiboot28.name=Optiboot on 28-pin cpus
+xbeeboot28.name=XBeeBoot on 28-pin cpus
 
-optiboot28.upload.tool=arduino:avrdude
-optiboot28.upload.protocol=arduino
-optiboot28.upload.speed=115200
+xbeeboot28.upload.tool=arduino:avrdude
+xbeeboot28.upload.protocol=arduino
+xbeeboot28.upload.speed=115200
 
-optiboot28.bootloader.tool=arduino:avrdude
-optiboot28.bootloader.low_fuses=0xF7
-optiboot28.bootloader.unlock_bits=0x0F
-optiboot28.bootloader.lock_bits=0x2F
-optiboot28.build.f_cpu=16000000L
+xbeeboot28.bootloader.tool=arduino:avrdude
+xbeeboot28.bootloader.low_fuses=0xF7
+xbeeboot28.bootloader.unlock_bits=0x0F
+xbeeboot28.bootloader.lock_bits=0x2F
+xbeeboot28.build.f_cpu=16000000L
 
 
 #
@@ -30,318 +30,318 @@ optiboot28.build.f_cpu=16000000L
 #  For 8MHz using the internal RC Oscillator, we adjust fuses, use the same
 #  bootloader binary, and halve the upload rate.
 #
-optiboot28.menu.mhz.16MHz=16MHz
-optiboot28.menu.mhz.16MHz.upload.speed=115200
-optiboot28.menu.mhz.8MHz=8MHz (int)
-optiboot28.menu.mhz.8MHz.build.f_cpu=8000000L
-optiboot28.menu.mhz.8MHz.bootloader.low_fuses=0xE2
-optiboot28.menu.mhz.8MHz.upload.speed=57600
-optiboot28.menu.mhz.1MHz=1MHz (int)
-optiboot28.menu.mhz.1MHz.build.f_cpu=1000000L
-optiboot28.menu.mhz.1MHz.bootloader.low_fuses=0x62
-optiboot28.menu.mhz.1MHz.upload.speed=9600
+xbeeboot28.menu.mhz.16MHz=16MHz
+xbeeboot28.menu.mhz.16MHz.upload.speed=115200
+xbeeboot28.menu.mhz.8MHz=8MHz (int)
+xbeeboot28.menu.mhz.8MHz.build.f_cpu=8000000L
+xbeeboot28.menu.mhz.8MHz.bootloader.low_fuses=0xE2
+xbeeboot28.menu.mhz.8MHz.upload.speed=57600
+xbeeboot28.menu.mhz.1MHz=1MHz (int)
+xbeeboot28.menu.mhz.1MHz.build.f_cpu=1000000L
+xbeeboot28.menu.mhz.1MHz.bootloader.low_fuses=0x62
+xbeeboot28.menu.mhz.1MHz.upload.speed=9600
 
-# optiboot platforms should be UNO-like more than anything else.
-optiboot28.build.board=AVR_UNO
-optiboot28.build.core=arduino:arduino
-optiboot28.build.variant=arduino:standard
+# xbeeboot platforms should be UNO-like more than anything else.
+xbeeboot28.build.board=AVR_UNO
+xbeeboot28.build.core=arduino:arduino
+xbeeboot28.build.variant=arduino:standard
 
 
-## Optiboot for ATmega328p
+## XBeeBoot for ATmega328p
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega328p=ATmega328p
-optiboot28.menu.cpu.atmega328p.upload.maximum_size=32256
-optiboot28.menu.cpu.atmega328p.upload.maximum_data_size=2048
+xbeeboot28.menu.cpu.atmega328p=ATmega328p
+xbeeboot28.menu.cpu.atmega328p.upload.maximum_size=32256
+xbeeboot28.menu.cpu.atmega328p.upload.maximum_data_size=2048
 
-optiboot28.menu.cpu.atmega328p.bootloader.high_fuses=0xDE
-optiboot28.menu.cpu.atmega328p.bootloader.extended_fuses=0x05
-optiboot28.menu.cpu.atmega328p.bootloader.file=optiboot/optiboot_atmega328.hex
+xbeeboot28.menu.cpu.atmega328p.bootloader.high_fuses=0xDE
+xbeeboot28.menu.cpu.atmega328p.bootloader.extended_fuses=0x05
+xbeeboot28.menu.cpu.atmega328p.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 
-optiboot28.menu.cpu.atmega328p.build.mcu=atmega328p
+xbeeboot28.menu.cpu.atmega328p.build.mcu=atmega328p
 
-## Optiboot for ATmega328
+## XBeeBoot for ATmega328
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega328=ATmega328
-optiboot28.menu.cpu.atmega328.upload.maximum_size=32256
-optiboot28.menu.cpu.atmega328.upload.maximum_data_size=2048
+xbeeboot28.menu.cpu.atmega328=ATmega328
+xbeeboot28.menu.cpu.atmega328.upload.maximum_size=32256
+xbeeboot28.menu.cpu.atmega328.upload.maximum_data_size=2048
 
-optiboot28.menu.cpu.atmega328.bootloader.high_fuses=0xDE
-optiboot28.menu.cpu.atmega328.bootloader.extended_fuses=0x05
-optiboot28.menu.cpu.atmega328.bootloader.file=optiboot/optiboot_atmega328.hex
+xbeeboot28.menu.cpu.atmega328.bootloader.high_fuses=0xDE
+xbeeboot28.menu.cpu.atmega328.bootloader.extended_fuses=0x05
+xbeeboot28.menu.cpu.atmega328.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 # lie!  Arduino wise, these are compatible
-optiboot28.menu.cpu.atmega328.build.mcu=atmega328p
+xbeeboot28.menu.cpu.atmega328.build.mcu=atmega328p
 
 
-## Optiboot ATmega168
+## XBeeBoot ATmega168
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega168=ATmega168
+xbeeboot28.menu.cpu.atmega168=ATmega168
 
-optiboot28.menu.cpu.atmega168.upload.maximum_size=15872
-optiboot28.menu.cpu.atmega168.upload.maximum_data_size=1024
+xbeeboot28.menu.cpu.atmega168.upload.maximum_size=15872
+xbeeboot28.menu.cpu.atmega168.upload.maximum_data_size=1024
 
-optiboot28.menu.cpu.atmega168.bootloader.high_fuses=0xDD
-optiboot28.menu.cpu.atmega168.bootloader.extended_fuses=0xFC
-optiboot28.menu.cpu.atmega168.bootloader.file=optiboot/optiboot_atmega168.hex
+xbeeboot28.menu.cpu.atmega168.bootloader.high_fuses=0xDD
+xbeeboot28.menu.cpu.atmega168.bootloader.extended_fuses=0xFC
+xbeeboot28.menu.cpu.atmega168.bootloader.file=xbeeboot/xbeeboot_atmega168.hex
 
-optiboot28.menu.cpu.atmega168.build.mcu=atmega168
+xbeeboot28.menu.cpu.atmega168.build.mcu=atmega168
 
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega168p=ATmega168p
+xbeeboot28.menu.cpu.atmega168p=ATmega168p
 
-optiboot28.menu.cpu.atmega168p.upload.maximum_size=15872
-optiboot28.menu.cpu.atmega168p.upload.maximum_data_size=1024
+xbeeboot28.menu.cpu.atmega168p.upload.maximum_size=15872
+xbeeboot28.menu.cpu.atmega168p.upload.maximum_data_size=1024
 
-optiboot28.menu.cpu.atmega168p.bootloader.high_fuses=0xDD
-optiboot28.menu.cpu.atmega168p.bootloader.extended_fuses=0xFC
-optiboot28.menu.cpu.atmega168p.bootloader.file=optiboot/optiboot_atmega168.hex
+xbeeboot28.menu.cpu.atmega168p.bootloader.high_fuses=0xDD
+xbeeboot28.menu.cpu.atmega168p.bootloader.extended_fuses=0xFC
+xbeeboot28.menu.cpu.atmega168p.bootloader.file=xbeeboot/xbeeboot_atmega168.hex
 
-optiboot28.menu.cpu.atmega168p.build.mcu=atmega168p
+xbeeboot28.menu.cpu.atmega168p.build.mcu=atmega168p
 
 
-## optiboot for ATmega8
+## xbeeboot for ATmega8
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega8=ATmega8
+xbeeboot28.menu.cpu.atmega8=ATmega8
 
-optiboot28.menu.cpu.atmega8.upload.maximum_size=7680
-optiboot28.menu.cpu.atmega8.upload.maximum_data_size=1024
+xbeeboot28.menu.cpu.atmega8.upload.maximum_size=7680
+xbeeboot28.menu.cpu.atmega8.upload.maximum_data_size=1024
 
-optiboot28.menu.cpu.atmega8.bootloader.high_fuses=0xCC
-optiboot28.menu.cpu.atmega8.bootloader.low_fuses=0xBF
-optiboot28.menu.cpu.8MHz.bootloader.low_fuses=0xE2
-# optiboot28.menu.cpu.atmega8.bootloader.extended_fuses=0x00
-optiboot28.menu.cpu.atmega8.bootloader.file=optiboot/optiboot_atmega8.hex
+xbeeboot28.menu.cpu.atmega8.bootloader.high_fuses=0xCC
+xbeeboot28.menu.cpu.atmega8.bootloader.low_fuses=0xBF
+xbeeboot28.menu.cpu.8MHz.bootloader.low_fuses=0xE2
+# xbeeboot28.menu.cpu.atmega8.bootloader.extended_fuses=0x00
+xbeeboot28.menu.cpu.atmega8.bootloader.file=xbeeboot/xbeeboot_atmega8.hex
 
-optiboot28.menu.cpu.atmega8.build.mcu=atmega8
+xbeeboot28.menu.cpu.atmega8.build.mcu=atmega8
 
 ## Atmega88
 ## ---------------------------------------------
-optiboot28.menu.cpu.atmega88=ATmega88
+xbeeboot28.menu.cpu.atmega88=ATmega88
 
-optiboot28.menu.cpu.atmega88.upload.maximum_size=7680
-optiboot28.menu.cpu.atmega88.upload.maximum_data_size=1024
+xbeeboot28.menu.cpu.atmega88.upload.maximum_size=7680
+xbeeboot28.menu.cpu.atmega88.upload.maximum_data_size=1024
 
-optiboot28.menu.cpu.atmega88.bootloader.high_fuses=0xDD
-optiboot28.menu.cpu.atmega88.bootloader.extended_fuses=0xFC
-optiboot28.menu.cpu.atmega88.bootloader.file=optiboot/optiboot_atmega88.hex
+xbeeboot28.menu.cpu.atmega88.bootloader.high_fuses=0xDD
+xbeeboot28.menu.cpu.atmega88.bootloader.extended_fuses=0xFC
+xbeeboot28.menu.cpu.atmega88.bootloader.file=xbeeboot/xbeeboot_atmega88.hex
 
-optiboot28.menu.cpu.atmega88.build.mcu=atmega88p
+xbeeboot28.menu.cpu.atmega88.build.mcu=atmega88p
 
 
 ##############################################################
-## Optiboot on 32pin (SMT) CPUs (Nano, Pro Micro, etc.)
+## XBeeBoot on 32pin (SMT) CPUs (Nano, Pro Micro, etc.)
 ##############################################################
 
-optiboot32.name=Optiboot on 32-pin cpus
+xbeeboot32.name=XBeeBoot on 32-pin cpus
 
-optiboot32.upload.tool=arduino:avrdude
-optiboot32.upload.protocol=arduino
-optiboot32.upload.speed=115200
+xbeeboot32.upload.tool=arduino:avrdude
+xbeeboot32.upload.protocol=arduino
+xbeeboot32.upload.speed=115200
 
-optiboot32.bootloader.tool=arduino:avrdude
-optiboot32.bootloader.low_fuses=0xF7
-optiboot32.bootloader.unlock_bits=0x2F
-optiboot32.bootloader.lock_bits=0x0F
-optiboot32.build.f_cpu=16000000L
+xbeeboot32.bootloader.tool=arduino:avrdude
+xbeeboot32.bootloader.low_fuses=0xF7
+xbeeboot32.bootloader.unlock_bits=0x2F
+xbeeboot32.bootloader.lock_bits=0x0F
+xbeeboot32.build.f_cpu=16000000L
 
 #
 # Other Clock speeds.
 #  For 8MHz using the internal RC Oscillator, we adjust fuses, use the same
 #  bootloader binary, and halve the upload rate.
 #
-optiboot32.menu.mhz.16MHz=16MHz
-optiboot32.menu.mhz.16MHz.upload.speed=115200
-optiboot32.menu.mhz.8MHz=8MHz (int)
-optiboot32.menu.mhz.8MHz.build.f_cpu=8000000L
-optiboot32.menu.mhz.8MHz.bootloader.low_fuses=0xE2
-optiboot32.menu.mhz.8MHz.upload.speed=57600
-optiboot32.menu.mhz.1MHz=1MHz (int)
-optiboot32.menu.mhz.1MHz.build.f_cpu=1000000L
-optiboot32.menu.mhz.1MHz.bootloader.low_fuses=0x62
-optiboot32.menu.mhz.1MHz.upload.speed=9600
+xbeeboot32.menu.mhz.16MHz=16MHz
+xbeeboot32.menu.mhz.16MHz.upload.speed=115200
+xbeeboot32.menu.mhz.8MHz=8MHz (int)
+xbeeboot32.menu.mhz.8MHz.build.f_cpu=8000000L
+xbeeboot32.menu.mhz.8MHz.bootloader.low_fuses=0xE2
+xbeeboot32.menu.mhz.8MHz.upload.speed=57600
+xbeeboot32.menu.mhz.1MHz=1MHz (int)
+xbeeboot32.menu.mhz.1MHz.build.f_cpu=1000000L
+xbeeboot32.menu.mhz.1MHz.bootloader.low_fuses=0x62
+xbeeboot32.menu.mhz.1MHz.upload.speed=9600
 
-# optiboot platforms should be UNO-like more than anything else.
-optiboot32.build.board=AVR_UNO
-optiboot32.build.core=arduino:arduino
-optiboot32.build.variant=arduino:eightanaloginputs
+# xbeeboot platforms should be UNO-like more than anything else.
+xbeeboot32.build.board=AVR_UNO
+xbeeboot32.build.core=arduino:arduino
+xbeeboot32.build.variant=arduino:eightanaloginputs
 
 
-## Optiboot for ATmega328p
+## XBeeBoot for ATmega328p
 ## ---------------------------------------------
-optiboot32.menu.cpu.atmega328p=ATmega328p
-optiboot32.menu.cpu.atmega328p.upload.maximum_size=32256
-optiboot32.menu.cpu.atmega328p.upload.maximum_data_size=2048
+xbeeboot32.menu.cpu.atmega328p=ATmega328p
+xbeeboot32.menu.cpu.atmega328p.upload.maximum_size=32256
+xbeeboot32.menu.cpu.atmega328p.upload.maximum_data_size=2048
 
-optiboot32.menu.cpu.atmega328p.bootloader.high_fuses=0xDE
-optiboot32.menu.cpu.atmega328p.bootloader.extended_fuses=0x05
-optiboot32.menu.cpu.atmega328p.bootloader.file=optiboot/optiboot_atmega328.hex
+xbeeboot32.menu.cpu.atmega328p.bootloader.high_fuses=0xDE
+xbeeboot32.menu.cpu.atmega328p.bootloader.extended_fuses=0x05
+xbeeboot32.menu.cpu.atmega328p.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 
-optiboot32.menu.cpu.atmega328p.build.mcu=atmega328p
+xbeeboot32.menu.cpu.atmega328p.build.mcu=atmega328p
 
-## Optiboot for ATmega328
+## XBeeBoot for ATmega328
 ## ---------------------------------------------
-optiboot32.menu.cpu.atmega328=ATmega328
-optiboot32.menu.cpu.atmega328.upload.maximum_size=32256
-optiboot32.menu.cpu.atmega328.upload.maximum_data_size=2048
+xbeeboot32.menu.cpu.atmega328=ATmega328
+xbeeboot32.menu.cpu.atmega328.upload.maximum_size=32256
+xbeeboot32.menu.cpu.atmega328.upload.maximum_data_size=2048
 
-optiboot32.menu.cpu.atmega328.bootloader.high_fuses=0xDE
-optiboot32.menu.cpu.atmega328.bootloader.extended_fuses=0x05
-optiboot32.menu.cpu.atmega328.bootloader.file=optiboot/optiboot_atmega328.hex
+xbeeboot32.menu.cpu.atmega328.bootloader.high_fuses=0xDE
+xbeeboot32.menu.cpu.atmega328.bootloader.extended_fuses=0x05
+xbeeboot32.menu.cpu.atmega328.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 # lie!  Arduino wise, these are compatible
-optiboot32.menu.cpu.atmega328.build.mcu=atmega328p
+xbeeboot32.menu.cpu.atmega328.build.mcu=atmega328p
 
 
-## Optiboot ATmega168
+## XBeeBoot ATmega168
 ## ---------------------------------------------
-optiboot32.menu.cpu.atmega168=ATmega168
+xbeeboot32.menu.cpu.atmega168=ATmega168
 
-optiboot32.menu.cpu.atmega168.upload.maximum_size=15872
-optiboot32.menu.cpu.atmega168.upload.maximum_data_size=1024
+xbeeboot32.menu.cpu.atmega168.upload.maximum_size=15872
+xbeeboot32.menu.cpu.atmega168.upload.maximum_data_size=1024
 
-optiboot32.menu.cpu.atmega168.bootloader.high_fuses=0xDD
-optiboot32.menu.cpu.atmega168.bootloader.extended_fuses=0xFC
-optiboot32.menu.cpu.atmega168.bootloader.file=optiboot/optiboot_atmega168.hex
+xbeeboot32.menu.cpu.atmega168.bootloader.high_fuses=0xDD
+xbeeboot32.menu.cpu.atmega168.bootloader.extended_fuses=0xFC
+xbeeboot32.menu.cpu.atmega168.bootloader.file=xbeeboot/xbeeboot_atmega168.hex
 
-optiboot32.menu.cpu.atmega168.build.mcu=atmega168
+xbeeboot32.menu.cpu.atmega168.build.mcu=atmega168
 
 ## ---------------------------------------------
-optiboot32.menu.cpu.atmega168p=ATmega168p
+xbeeboot32.menu.cpu.atmega168p=ATmega168p
 
-optiboot32.menu.cpu.atmega168p.upload.maximum_size=15872
-optiboot32.menu.cpu.atmega168p.upload.maximum_data_size=1024
+xbeeboot32.menu.cpu.atmega168p.upload.maximum_size=15872
+xbeeboot32.menu.cpu.atmega168p.upload.maximum_data_size=1024
 
-optiboot32.menu.cpu.atmega168p.bootloader.high_fuses=0xDD
-optiboot32.menu.cpu.atmega168p.bootloader.extended_fuses=0xFC
-optiboot32.menu.cpu.atmega168p.bootloader.file=optiboot/optiboot_atmega168.hex
+xbeeboot32.menu.cpu.atmega168p.bootloader.high_fuses=0xDD
+xbeeboot32.menu.cpu.atmega168p.bootloader.extended_fuses=0xFC
+xbeeboot32.menu.cpu.atmega168p.bootloader.file=xbeeboot/xbeeboot_atmega168.hex
 
-optiboot32.menu.cpu.atmega168p.build.mcu=atmega168p
+xbeeboot32.menu.cpu.atmega168p.build.mcu=atmega168p
 
 
-
-##############################################################
-## Other optiboot platforms
-##############################################################
-
-optiboot1280.name=Optiboot on Mega1280
-
-optiboot1280.upload.tool=arduino:avrdude
-optiboot1280.upload.protocol=arduino
-optiboot1280.upload.speed=115200
-
-optiboot1280.bootloader.tool=arduino:avrdude
-optiboot1280.bootloader.unlock_bits=0x3F
-optiboot1280.bootloader.lock_bits=0x2F
-
-optiboot1280.build.f_cpu=16000000L
-
-optiboot1280.build.board=AVR_MEGA
-optiboot1280.build.core=arduino:arduino
-optiboot1280.build.variant=arduino:mega
-
-optiboot1280.upload.maximum_size=130048
-optiboot1280.upload.maximum_data_size=8192
-
-optiboot1280.bootloader.low_fuses=0xFF
-optiboot1280.bootloader.high_fuses=0xDE
-optiboot1280.bootloader.extended_fuses=0x05
-optiboot1280.bootloader.file=optiboot/optiboot_atmega1280.hex
-
-optiboot1280.build.mcu=atmega1280
 
 ##############################################################
+## Other xbeeboot platforms
+##############################################################
+
+xbeeboot1280.name=XBeeBoot on Mega1280
+
+xbeeboot1280.upload.tool=arduino:avrdude
+xbeeboot1280.upload.protocol=arduino
+xbeeboot1280.upload.speed=115200
+
+xbeeboot1280.bootloader.tool=arduino:avrdude
+xbeeboot1280.bootloader.unlock_bits=0x3F
+xbeeboot1280.bootloader.lock_bits=0x2F
+
+xbeeboot1280.build.f_cpu=16000000L
+
+xbeeboot1280.build.board=AVR_MEGA
+xbeeboot1280.build.core=arduino:arduino
+xbeeboot1280.build.variant=arduino:mega
+
+xbeeboot1280.upload.maximum_size=130048
+xbeeboot1280.upload.maximum_data_size=8192
+
+xbeeboot1280.bootloader.low_fuses=0xFF
+xbeeboot1280.bootloader.high_fuses=0xDE
+xbeeboot1280.bootloader.extended_fuses=0x05
+xbeeboot1280.bootloader.file=xbeeboot/xbeeboot_atmega1280.hex
+
+xbeeboot1280.build.mcu=atmega1280
+
+##############################################################
 
 
-optiboot1284.name=Optiboot on (generic) Mega1284
+xbeeboot1284.name=XBeeBoot on (generic) Mega1284
 
-optiboot1284.upload.tool=arduino:avrdude
-optiboot1284.upload.protocol=arduino
-optiboot1284.upload.speed=115200
+xbeeboot1284.upload.tool=arduino:avrdude
+xbeeboot1284.upload.protocol=arduino
+xbeeboot1284.upload.speed=115200
 
-optiboot1284.bootloader.tool=arduino:avrdude
-optiboot1284.bootloader.unlock_bits=0x3F
-optiboot1284.bootloader.lock_bits=0x2F
+xbeeboot1284.bootloader.tool=arduino:avrdude
+xbeeboot1284.bootloader.unlock_bits=0x3F
+xbeeboot1284.bootloader.lock_bits=0x2F
 
-optiboot1284.build.f_cpu=16000000L
+xbeeboot1284.build.f_cpu=16000000L
 
-optiboot1284.build.board=AVR_M1284
-optiboot1284.build.core=arduino:arduino
-optiboot1284.build.variant=arduino:standard
+xbeeboot1284.build.board=AVR_M1284
+xbeeboot1284.build.core=arduino:arduino
+xbeeboot1284.build.variant=arduino:standard
 
-optiboot1284.upload.maximum_size=130048
-optiboot1284.upload.maximum_data_size=16384
+xbeeboot1284.upload.maximum_size=130048
+xbeeboot1284.upload.maximum_data_size=16384
 
 # Select full swing crystal oscillator (7F rather than FF)
-optiboot1284.bootloader.low_fuses=0x7F
-optiboot1284.bootloader.high_fuses=0xDE
-optiboot1284.bootloader.extended_fuses=0x05
-optiboot1284.bootloader.file=optiboot/optiboot_atmega1284p.hex
+xbeeboot1284.bootloader.low_fuses=0x7F
+xbeeboot1284.bootloader.high_fuses=0xDE
+xbeeboot1284.bootloader.extended_fuses=0x05
+xbeeboot1284.bootloader.file=xbeeboot/xbeeboot_atmega1284p.hex
 
-optiboot1284.build.mcu=atmega1284p
-
-##############################################################
-
-
-optibootm32.name=Optiboot on Mega32
-
-optibootm32.upload.tool=arduino:avrdude
-optibootm32.upload.protocol=arduino
-optibootm32.upload.speed=115200
-
-optibootm32.bootloader.tool=arduino:avrdude
-optibootm32.bootloader.unlock_bits=0x3F
-optibootm32.bootloader.lock_bits=0x2F
-
-optibootm32.build.f_cpu=16000000L
-
-optibootm32.build.board=AVR_M32
-optibootm32.build.core=arduino:arduino
-optibootm32.build.variant=arduino:standard
-
-optibootm32.upload.maximum_size=130048
-optibootm32.upload.maximum_data_size=8192
-
-optibootm32.bootloader.low_fuses=0xBF
-optibootm32.bootloader.high_fuses=0xCE
-optibootm32.bootloader.extended_fuses=0xFF
-optibootm32.bootloader.file=optiboot/optiboot_atmega32.hex
-
-optibootm32.build.mcu=atmega32
-
+xbeeboot1284.build.mcu=atmega1284p
 
 ##############################################################
 
-optiboott84.name=Optiboot on Tiny84
 
-optiboott84.menu.mhz.8MHz=8MHz (int)
-optiboott84.menu.mhz.8MHz.build.f_cpu=8000000L
-optiboott84.menu.mhz.8MHz.upload.speed=57600
-optiboott84.menu.mhz.8MHz.bootloader.file=optiboot/optiboot_attiny84_8mhz.hex
-optiboott84.menu.mhz.8MHz.bootloader.low_fuses=0xE2
-optiboott84.menu.mhz.8MHz.bootloader.high_fuses=0xDE
-optiboott84.menu.mhz.8MHz.bootloader.extended_fuses=0xFE
+xbeebootm32.name=XBeeBoot on Mega32
 
-optiboott84.menu.mhz.1MHz=1MHz (int)
-optiboott84.menu.mhz.1MHz.build.f_cpu=1000000L
-optiboott84.menu.mhz.1MHz.upload.speed=9600
-optiboott84.menu.mhz.1MHz.bootloader.file=optiboot/optiboot_attiny84.hex
-optiboott84.menu.mhz.1MHz.bootloader.low_fuses=0x62
-optiboott84.menu.mhz.1MHz.bootloader.high_fuses=0xDE
-optiboott84.menu.mhz.1MHz.bootloader.extended_fuses=0xFE
+xbeebootm32.upload.tool=arduino:avrdude
+xbeebootm32.upload.protocol=arduino
+xbeebootm32.upload.speed=115200
 
-optiboott84.upload.tool=arduino:avrdude
-optiboott84.upload.protocol=arduino
-optiboott84.upload.speed=9600
+xbeebootm32.bootloader.tool=arduino:avrdude
+xbeebootm32.bootloader.unlock_bits=0x3F
+xbeebootm32.bootloader.lock_bits=0x2F
 
-optiboott84.bootloader.tool=arduino:avrdude
-optiboott84.bootloader.unlock_bits=0x3F
-optiboott84.bootloader.lock_bits=0x2F
+xbeebootm32.build.f_cpu=16000000L
 
-optiboott84.build.f_cpu=1000000L
+xbeebootm32.build.board=AVR_M32
+xbeebootm32.build.core=arduino:arduino
+xbeebootm32.build.variant=arduino:standard
 
-optiboott84.build.board=AVR_TINY
-optiboott84.build.core=tiny:tiny
-optiboott84.build.variant=tiny:tiny
+xbeebootm32.upload.maximum_size=130048
+xbeebootm32.upload.maximum_data_size=8192
 
-optiboott84.upload.maximum_size=7600
-optiboott84.upload.maximum_data_size=512
+xbeebootm32.bootloader.low_fuses=0xBF
+xbeebootm32.bootloader.high_fuses=0xCE
+xbeebootm32.bootloader.extended_fuses=0xFF
+xbeebootm32.bootloader.file=xbeeboot/xbeeboot_atmega32.hex
 
-optiboott84.build.mcu=attiny84
+xbeebootm32.build.mcu=atmega32
+
+
+##############################################################
+
+xbeeboott84.name=XBeeBoot on Tiny84
+
+xbeeboott84.menu.mhz.8MHz=8MHz (int)
+xbeeboott84.menu.mhz.8MHz.build.f_cpu=8000000L
+xbeeboott84.menu.mhz.8MHz.upload.speed=57600
+xbeeboott84.menu.mhz.8MHz.bootloader.file=xbeeboot/xbeeboot_attiny84_8mhz.hex
+xbeeboott84.menu.mhz.8MHz.bootloader.low_fuses=0xE2
+xbeeboott84.menu.mhz.8MHz.bootloader.high_fuses=0xDE
+xbeeboott84.menu.mhz.8MHz.bootloader.extended_fuses=0xFE
+
+xbeeboott84.menu.mhz.1MHz=1MHz (int)
+xbeeboott84.menu.mhz.1MHz.build.f_cpu=1000000L
+xbeeboott84.menu.mhz.1MHz.upload.speed=9600
+xbeeboott84.menu.mhz.1MHz.bootloader.file=xbeeboot/xbeeboot_attiny84.hex
+xbeeboott84.menu.mhz.1MHz.bootloader.low_fuses=0x62
+xbeeboott84.menu.mhz.1MHz.bootloader.high_fuses=0xDE
+xbeeboott84.menu.mhz.1MHz.bootloader.extended_fuses=0xFE
+
+xbeeboott84.upload.tool=arduino:avrdude
+xbeeboott84.upload.protocol=arduino
+xbeeboott84.upload.speed=9600
+
+xbeeboott84.bootloader.tool=arduino:avrdude
+xbeeboott84.bootloader.unlock_bits=0x3F
+xbeeboott84.bootloader.lock_bits=0x2F
+
+xbeeboott84.build.f_cpu=1000000L
+
+xbeeboott84.build.board=AVR_TINY
+xbeeboott84.build.core=tiny:tiny
+xbeeboott84.build.variant=tiny:tiny
+
+xbeeboott84.upload.maximum_size=7600
+xbeeboott84.upload.maximum_data_size=512
+
+xbeeboott84.build.mcu=attiny84
