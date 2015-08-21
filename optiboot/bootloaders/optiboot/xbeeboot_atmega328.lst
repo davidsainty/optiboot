@@ -1,5 +1,5 @@
 
-optiboot_atmega328.elf:     file format elf32-avr
+xbeeboot_atmega328.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
@@ -11,9 +11,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   3 .stab         00001470  00000000  00000000  00000474  2**2
                   CONTENTS, READONLY, DEBUGGING
-  4 .stabstr      00000f28  00000000  00000000  000018e4  2**0
+  4 .stabstr      00000f1c  00000000  00000000  000018e4  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .comment      00000011  00000000  00000000  0000280c  2**0
+  5 .comment      00000011  00000000  00000000  00002800  2**0
                   CONTENTS, READONLY
 
 Disassembly of section .text:
