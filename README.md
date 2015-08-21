@@ -112,5 +112,4 @@ Yes it can.  In two ways, in fact:
     via AES encryption, which is "pretty good".  Realistically, standard XBee
     security will normally be good enough.  Perfection would be if XBeeBoot
     supported an extra level of digital signature on firmware updates as an
-    extra level of security.  Adding that feature would definitely force the
-    bootloader to grow to 2kB though.
+    additional security measure.  But then XBeeBoot wouldn't fit into 1kB.
