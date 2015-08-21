@@ -3,24 +3,24 @@
 # before it will be valid:
 #  Strip comments.
 #  Replace variables:
-#   %VERSION% gets the Optiboot Version
+#   %VERSION% gets the XBeeBoot Version
 #   %HASH% gets the SHA-256 has for the .zip file.
-#    (generate with: openssl dgst -sha256 optiboot.zip | sed -e 's/.* //'
+#    (generate with: openssl dgst -sha256 xbeeboot.zip | sed -e 's/.* //'
 #   %SIZE% gets the size of the .zip file
 #
 {
   "packages": [
     {
-      "name": "Optiboot",
+      "name": "XBeeBoot",
       "maintainer": "westfw",
-      "websiteURL": "https://github.com/Optiboot/optiboot",
+      "websiteURL": "https://github.com/davidsainty/xbeeboot",
       "email": "",
       "help": {
         "online": ""
       },
       "platforms": [
         {
-          "name": "Optiboot %VERSION%",
+          "name": "XBeeBoot %VERSION%",
           "architecture": "avr",
           "version": "0.%VERSION%",
 #
@@ -28,10 +28,10 @@
 #
           "category": "Contributed",
           "help": {
-	    "online": "https://github.com/Optiboot/optiboot/wiki"
+	    "online": "https://github.com/davidsainty/xbeeboot/wiki"
           },
-          "url": "https://github.com/Optiboot/optiboot/releases/download/v%VERSION%/optiboot.zip",
-          "archiveFileName": "optiboot.zip",
+          "url": "https://github.com/davidsainty/xbeeboot/releases/download/v%VERSION%/xbeeboot.zip",
+          "archiveFileName": "xbeeboot.zip",
 #
 # Package file verification data
 #
@@ -39,7 +39,7 @@
           "size": "%SIZE%",
 #
           "boards": [
-            {"name": "New Optiboot"}
+            {"name": "New XBeeBoot"}
           ],
           "toolsDependencies": [
             {
