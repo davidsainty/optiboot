@@ -29,7 +29,8 @@ It provides the following features:
     standard Optiboot protocol.
 
   * Full access to Optiboot-supported bootloader facilities Over-The-Air via
-    patched avrdude software.
+    [patched avrdude software]
+    (https://savannah.nongnu.org/patch/index.php?8719).
 
 
 #### What hardware support does it need? ####
