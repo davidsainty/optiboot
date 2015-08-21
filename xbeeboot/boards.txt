@@ -1,19 +1,20 @@
-# Optiboot Arduino support
-# http://optiboot.googlecode.com
+# XBeeBoot Arduino support
+# https://github.com/davidsainty/xbeeboot/
 # Peter Knight, 2010
-# Bill Westfield, 2013 - now includes build.variant for 1.0.2 and later
+# Bill Westfield, 2013
+# David Sainty, 2015
 
 ##############################################################
 
-atmega328o.name=[Optiboot] Arduino Duemilanove or Nano w/ ATmega328
+atmega328o.name=[XBeeBoot] Arduino Duemilanove or Nano w/ ATmega328
 atmega328o.upload.protocol=arduino
 atmega328o.upload.maximum_size=32256
 atmega328o.upload.speed=115200
 atmega328o.bootloader.low_fuses=0xff
 atmega328o.bootloader.high_fuses=0xde
 atmega328o.bootloader.extended_fuses=0x05
-atmega328o.bootloader.path=optiboot
-atmega328o.bootloader.file=optiboot_atmega328.hex
+atmega328o.bootloader.path=xbeeboot
+atmega328o.bootloader.file=xbeeboot_atmega328.hex
 atmega328o.bootloader.unlock_bits=0x3F
 atmega328o.bootloader.lock_bits=0x0F
 atmega328o.build.mcu=atmega328p
@@ -23,15 +24,15 @@ atmega328o.build.variant=arduino:standard
 
 ##############################################################
 
-diecimilao.name=[Optiboot] Arduino Diecimila, Duemilanove, Nano, NG w/ ATmega168
+diecimilao.name=[XBeeBoot] Arduino Diecimila, Duemilanove, Nano, NG w/ ATmega168
 diecimilao.upload.protocol=arduino
 diecimilao.upload.maximum_size=15872
 diecimilao.upload.speed=115200
 diecimilao.bootloader.low_fuses=0xff
 diecimilao.bootloader.high_fuses=0xdd
 diecimilao.bootloader.extended_fuses=0x04
-diecimilao.bootloader.path=optiboot
-diecimilao.bootloader.file=optiboot_diecimila.hex
+diecimilao.bootloader.path=xbeeboot
+diecimilao.bootloader.file=xbeeboot_diecimila.hex
 diecimilao.bootloader.unlock_bits=0x3F
 diecimilao.bootloader.lock_bits=0x0F
 diecimilao.build.mcu=atmega168
@@ -41,15 +42,15 @@ diecimilao.build.variant=arduino:standard
 
 ##############################################################
 
-minio.name=[Optiboot] Arduino Mini
+minio.name=[XBeeBoot] Arduino Mini
 minio.upload.protocol=arduino
 minio.upload.maximum_size=15872
 minio.upload.speed=115200
 minio.bootloader.low_fuses=0xff
 minio.bootloader.high_fuses=0xdd
 minio.bootloader.extended_fuses=0x02
-minio.bootloader.path=optiboot
-minio.bootloader.file=optiboot_ng.hex
+minio.bootloader.path=xbeeboot
+minio.bootloader.file=xbeeboot_ng.hex
 minio.bootloader.unlock_bits=0x3F
 minio.bootloader.lock_bits=0x0F
 minio.build.mcu=atmega168
@@ -59,15 +60,15 @@ minio.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
-lilypad328o.name=[Optiboot] LilyPad Arduino w/ ATmega328
+lilypad328o.name=[XBeeBoot] LilyPad Arduino w/ ATmega328
 lilypad328o.upload.protocol=arduino
 lilypad328o.upload.maximum_size=32256
 lilypad328o.upload.speed=115200
 lilypad328o.bootloader.low_fuses=0xff
 lilypad328o.bootloader.high_fuses=0xdc
 lilypad328o.bootloader.extended_fuses=0x05
-lilypad328o.bootloader.path=optiboot
-lilypad328o.bootloader.file=optiboot_atmega328_pro_8MHz.hex
+lilypad328o.bootloader.path=xbeeboot
+lilypad328o.bootloader.file=xbeeboot_atmega328_pro_8MHz.hex
 lilypad328o.bootloader.unlock_bits=0x3F
 lilypad328o.bootloader.lock_bits=0x0F
 lilypad328o.build.mcu=atmega328p
@@ -77,7 +78,7 @@ lilypad328o.build.variant=arduino:standard
 
 ##############################################################
 
-lilypado.name=[Optiboot] LilyPad Arduino w/ ATmega168
+lilypado.name=[XBeeBoot] LilyPad Arduino w/ ATmega168
 lilypado.upload.protocol=arduino
 lilypado.upload.maximum_size=15872
 lilypado.upload.speed=115200
@@ -85,7 +86,7 @@ lilypado.bootloader.low_fuses=0xe2
 lilypado.bootloader.high_fuses=0xdd
 lilypado.bootloader.extended_fuses=0x02
 lilypado.bootloader.path=lilypad
-lilypado.bootloader.file=optiboot_lilypad.hex
+lilypado.bootloader.file=xbeeboot_lilypad.hex
 lilypado.bootloader.unlock_bits=0x3F
 lilypado.bootloader.lock_bits=0x0F
 lilypado.build.mcu=atmega168
@@ -95,15 +96,15 @@ lilypado.build.variant=arduino:standard
 
 ##############################################################
 
-pro328o.name=[Optiboot] Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega328
+pro328o.name=[XBeeBoot] Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega328
 pro328o.upload.protocol=arduino
 pro328o.upload.maximum_size=32256
 pro328o.upload.speed=115200
 pro328o.bootloader.low_fuses=0xff
 pro328o.bootloader.high_fuses=0xdc
 pro328o.bootloader.extended_fuses=0x05
-pro328o.bootloader.path=optiboot
-pro328o.bootloader.file=optiboot_atmega328_pro_8MHz.hex
+pro328o.bootloader.path=xbeeboot
+pro328o.bootloader.file=xbeeboot_atmega328_pro_8MHz.hex
 pro328o.bootloader.unlock_bits=0x3F
 pro328o.bootloader.lock_bits=0x0F
 pro328o.build.mcu=atmega328p
@@ -113,15 +114,15 @@ pro328o.build.variant=arduino:standard
 
 ##############################################################
 
-proo.name=[Optiboot] Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega168
+proo.name=[XBeeBoot] Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega168
 proo.upload.protocol=arduino
 proo.upload.maximum_size=15872
 proo.upload.speed=115200
 proo.bootloader.low_fuses=0xc6
 proo.bootloader.high_fuses=0xdd
 proo.bootloader.extended_fuses=0x02
-proo.bootloader.path=optiboot
-proo.bootloader.file=optiboot_pro_8MHz.hex
+proo.bootloader.path=xbeeboot
+proo.bootloader.file=xbeeboot_pro_8MHz.hex
 proo.bootloader.unlock_bits=0x3F
 proo.bootloader.lock_bits=0x0F
 proo.build.mcu=atmega168
@@ -131,15 +132,15 @@ proo.build.variant=arduino:standard
 
 ##############################################################
 
-megao.name=[Optiboot] Arduino Mega1280
+megao.name=[XBeeBoot] Arduino Mega1280
 megao.upload.protocol=arduino
 megao.upload.maximum_size=130048
 megao.upload.speed=115200
 megao.bootloader.low_fuses=0xff
 megao.bootloader.high_fuses=0xde
 megao.bootloader.extended_fuses=0xf5
-megao.bootloader.path=optiboot
-megao.bootloader.file=optiboot_atmega1280.hex
+megao.bootloader.path=xbeeboot
+megao.bootloader.file=xbeeboot_atmega1280.hex
 megao.bootloader.unlock_bits=0x3F
 megao.bootloader.lock_bits=0x0F
 megao.build.mcu=atmega1280
@@ -147,14 +148,14 @@ megao.build.f_cpu=16000000L
 megao.build.core=arduino:arduino
 megao.build.variant=arduino:mega
 
-atmega8o.name=[Optiboot] Arduino NG or older w/ ATmega8
+atmega8o.name=[XBeeBoot] Arduino NG or older w/ ATmega8
 atmega8o.upload.protocol=arduino
 atmega8o.upload.maximum_size=7680
 atmega8o.upload.speed=115200
 atmega8o.bootloader.low_fuses=0xbf
 atmega8o.bootloader.high_fuses=0xdc
-atmega8o.bootloader.path=optiboot
-atmega8o.bootloader.file=optiboot_atmega8.hex
+atmega8o.bootloader.path=xbeeboot
+atmega8o.bootloader.file=xbeeboot_atmega8.hex
 atmega8o.bootloader.unlock_bits=0x3F
 atmega8o.bootloader.lock_bits=0x0F
 atmega8o.build.mcu=atmega8
@@ -162,15 +163,15 @@ atmega8o.build.f_cpu=16000000L
 atmega8o.build.core=arduino:arduino
 atmega8o.build.variant=arduino:standard
 
-atmega88o.name=[Optiboot] Arduino NG or older w/ ATmega88
+atmega88o.name=[XBeeBoot] Arduino NG or older w/ ATmega88
 atmega88o.upload.protocol=arduino
 atmega88o.upload.maximum_size=7680
 atmega88o.upload.speed=115200
 atmega88o.bootloader.low_fuses=0xff
 atmega88o.bootloader.high_fuses=0xdd
 atmega88o.bootloader.extended_fuses=0x04
-atmega88o.bootloader.path=optiboot
-atmega88o.bootloader.file=optiboot_atmega88.hex
+atmega88o.bootloader.path=xbeeboot
+atmega88o.bootloader.file=xbeeboot_atmega88.hex
 atmega88o.bootloader.unlock_bits=0x3F
 atmega88o.bootloader.lock_bits=0x0F
 atmega88o.build.mcu=atmega88
@@ -180,15 +181,15 @@ atmega88o.build.variant=arduino:standard
 
 ##############################################################
 #
-# sanguinoo.name=[Optiboot] Sanguino (work in progress)
+# sanguinoo.name=[XBeeBoot] Sanguino (work in progress)
 # sanguinoo.upload.protocol=arduino
 # sanguinoo.upload.maximum_size=63488
 # sanguinoo.upload.speed=115200
 # sanguinoo.bootloader.low_fuses=0xff
 # sanguinoo.bootloader.high_fuses=0xdc
 # sanguinoo.bootloader.extended_fuses=0xfd
-# sanguinoo.bootloader.path=optiboot
-# sanguinoo.bootloader.file=optiboot_atmega644p.hex
+# sanguinoo.bootloader.path=xbeeboot
+# sanguinoo.bootloader.file=xbeeboot_atmega644p.hex
 # sanguinoo.bootloader.unlock_bits=0x3F
 # sanguinoo.bootloader.lock_bits=0x0F
 # sanguinoo.build.mcu=atmega644p
@@ -198,29 +199,29 @@ atmega88o.build.variant=arduino:standard
 
 ##############################################################
 #
-# lumineto.name=[Optiboot] Luminet (work in progress)
+# lumineto.name=[XBeeBoot] Luminet (work in progress)
 # lumineto.upload.protocol=arduino
 # lumineto.upload.maximum_size=7424
 # lumineto.upload.speed=9600
 # lumineto.bootloader.low_fuses=0x62
 # lumineto.bootloader.high_fuses=0xdf
 # lumineto.bootloader.extended_fuses=0xfe
-# lumineto.bootloader.path=optiboot
-# lumineto.bootloader.file=optiboot_luminet.hex
+# lumineto.bootloader.path=xbeeboot
+# lumineto.bootloader.file=xbeeboot_luminet.hex
 # lumineto.build.mcu=attiny84
 # lumineto.build.f_cpu=1000000L
 # lumineto.build.core=luminet:luminet
 
 ##############################################################
 
-atmega32o.name=[Optiboot] ATmega32 based board
+atmega32o.name=[XBeeBoot] ATmega32 based board
 atmega32o.upload.protocol=arduino
 atmega32o.upload.maximum_size=32256
 atmega32o.upload.speed=115200
 atmega32o.bootloader.low_fuses=0xff
 atmega32o.bootloader.high_fuses=0xde
-atmega32o.bootloader.path=optiboot
-atmega32o.bootloader.file=optiboot_atmega32.hex
+atmega32o.bootloader.path=xbeeboot
+atmega32o.bootloader.file=xbeeboot_atmega32.hex
 atmega32o.bootloader.unlock_bits=0x3F
 atmega32o.bootloader.lock_bits=0x0F
 atmega32o.build.mcu=atmega32
@@ -230,15 +231,15 @@ atmega32o.build.variant=arduino:standard
 
 ##############################################################
 
-atmega1284o.name=[Optiboot] ATmega1284p
+atmega1284o.name=[XBeeBoot] ATmega1284p
 atmega1284o.upload.protocol=arduino
 atmega1284o.upload.maximum_size=130048
 atmega1284o.upload.speed=115200
 atmega1284o.bootloader.low_fuses=0xf7
 atmega1284o.bootloader.high_fuses=0xde
 atmega1284o.bootloader.extended_fuses=0x05
-atmega1284o.bootloader.path=optiboot
-atmega1284o.bootloader.file=optiboot_atmega1284p.hex
+atmega1284o.bootloader.path=xbeeboot
+atmega1284o.bootloader.file=xbeeboot_atmega1284p.hex
 atmega1284o.bootloader.unlock_bits=0x3F
 atmega1284o.bootloader.lock_bits=0x0F
 atmega1284o.build.mcu=atmega1284p
