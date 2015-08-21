@@ -96,3 +96,21 @@ Yes it can.  In two ways, in fact:
      serial links (E.g. AT mode XBee links), as the XBee bootloader protocol
      includes checksums, is packet-based and can recover from lost or
      corrupted packets in the serial data stream.
+
+
+#### It sounds like XBeeBoot is perfect!  Is it? ####
+
+  * XBeeBoot uses the hardware watchdog to guarantee that the bootloader
+    doesn't hang the chip, and does eventually exit.  The hardware watchdog
+    time-out can be set to a maximum of eight seconds on AVR devices.  A
+    time-out of eight seconds is a little on the short side for Over-The-Air
+    updates, so if your mesh network is prone to packet loss it may be
+    necessary to restart the firmware update because the eight second time-out
+    was tripped.
+
+  * XBee traffic on an encrypted network is already digitally authenticated
+    via AES encryption, which is "pretty good".  Realistically, standard XBee
+    security will normally be good enough.  Perfection would be if XBeeBoot
+    supported an extra level of digital signature on firmware updates as an
+    extra level of security.  Adding that feature would definitely force the
+    bootloader to grow to 2kB though.
