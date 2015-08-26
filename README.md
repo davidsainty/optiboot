@@ -15,11 +15,11 @@ It provides the following features:
     firmware.
 
   * Over-The-Air updates are secure: XBee security models apply - so firmware
-    updates are encrypted and authenticated with AES encryption if the Zigbee
+    updates are encrypted and authenticated with AES encryption if the ZigBee
     network is configured with encryption.
 
   * Over-The-Air updates are robust: The protocol uses direct addressing, so
-    the other devices on the Zigbee network are unaffected.  You could even
+    the other devices on the ZigBee network are unaffected.  You could even
     Over-The-Air update firmware on multiple devices concurrently.
 
   * Full access to Optiboot-supported bootloader facilities with a direct
@@ -56,7 +56,7 @@ This is intentionally identical circuitry to [SparkFun's tutorial]
 
 No.  In particular, it doesn't matter if the coordinator node is a separate
 and unrelated node.  Any XBee address can bootload to any other
-Zigbee-networked XBee-hosted AVR device, so long as they share encryption
+ZigBee-networked XBee-hosted AVR device, so long as they share encryption
 keys.
 
 
@@ -75,10 +75,10 @@ environment with more than two XBee devices, I haven't looked at AT mode very
 carefully.
 
 
-#### Are there any limits on the number of Zigbee nodes in the network? ####
+#### Are there any limits on the number of ZigBee nodes in the network? ####
 
 There are no known limits.  I currently have eight active XBee devices on the
-same Zigbee network, meshed over some fairly complicated terrain, with a mix
+same ZigBee network, meshed over some fairly complicated terrain, with a mix
 of router and endpoint devices, and can update the firmware successfully and
 reliably across the network.
 
@@ -92,7 +92,7 @@ Yes it can.  In two ways, in fact:
      the XBee default.
 
   1. You can also bootload, with the avrdude xbee programmer directly, by not
-     giving a Zigbee address.  This is useful for diagnosis and proof of
+     giving a ZigBee address.  This is useful for diagnosis and proof of
      concept testing.  It may also be useful for bootloading over unreliable
      serial links (E.g. AT mode XBee links), as the XBee bootloader protocol
      includes checksums, is packet-based and can recover from lost or
