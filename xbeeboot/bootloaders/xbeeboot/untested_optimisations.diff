@@ -1,0 +1,25 @@
+--- a/xbeeboot/bootloaders/xbeeboot/xbeeboot.c
++++ b/xbeeboot/bootloaders/xbeeboot/xbeeboot.c
+@@ -897,14 +897,20 @@ uint8_t poll(uint8_t waitForAck) {
+      */
+ #define PACKOFF_ADDRESS 1
+ #define PACKOFF_PAYLOAD 12
++    /*
++     * Assume the length cannot be 255, which is true - the XBee
++     * packet size limit is shorter than that.  If length == 255 the
++     * loop will never be satisfied, in which case the watchdog will
++     * be triggered.  The alternatives would cost more program space.
++     */
+     uint8_t index;
+-    for (index = 0; index < length; index++) {
++    for (index = 0; index <= length; index++) {
+       uint8_t dataByte = escGetch();
+       packet[index] = dataByte;
+       checksum -= dataByte;
+     }
+ 
+-    if (checksum != escGetch())
++    if (checksum != 0)
+       /* Checksum mismatch */
+       continue;
+ 
