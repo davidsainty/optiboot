@@ -53,7 +53,8 @@ xbeeboot28.menu.cpu.atmega328p=ATmega328p
 xbeeboot28.menu.cpu.atmega328p.upload.maximum_size=32256
 xbeeboot28.menu.cpu.atmega328p.upload.maximum_data_size=2048
 
-xbeeboot28.menu.cpu.atmega328p.bootloader.high_fuses=0xDE
+xbeeboot28.menu.cpu.atmega328p.bootloader.low_fuses=0xFF
+xbeeboot28.menu.cpu.atmega328p.bootloader.high_fuses=0xDC
 xbeeboot28.menu.cpu.atmega328p.bootloader.extended_fuses=0x05
 xbeeboot28.menu.cpu.atmega328p.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 
@@ -64,8 +65,8 @@ xbeeboot28.menu.cpu.atmega328p.build.mcu=atmega328p
 xbeeboot28.menu.cpu.atmega328=ATmega328
 xbeeboot28.menu.cpu.atmega328.upload.maximum_size=32256
 xbeeboot28.menu.cpu.atmega328.upload.maximum_data_size=2048
-
-xbeeboot28.menu.cpu.atmega328.bootloader.high_fuses=0xDE
+xbeeboot28.menu.cpu.atmega328.bootloader.low_fuses=0xFF
+xbeeboot28.menu.cpu.atmega328.bootloader.high_fuses=0xDC
 xbeeboot28.menu.cpu.atmega328.bootloader.extended_fuses=0x05
 xbeeboot28.menu.cpu.atmega328.bootloader.file=xbeeboot/xbeeboot_atmega328.hex
 # lie!  Arduino wise, these are compatible
