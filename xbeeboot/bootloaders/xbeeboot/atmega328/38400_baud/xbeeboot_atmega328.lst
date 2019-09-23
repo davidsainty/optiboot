@@ -1,0 +1,698 @@
+
+xbeeboot_atmega328.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .data         00000000  00800100  00007fd0  00000464  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  1 .text         000003d0  00007c00  00007c00  00000094  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .version      00000002  00007ffe  00007ffe  00000464  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  3 .stab         00001464  00000000  00000000  00000468  2**2
+                  CONTENTS, READONLY, DEBUGGING
+  4 .stabstr      00001005  00000000  00000000  000018cc  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .comment      00000011  00000000  00000000  000028d1  2**0
+                  CONTENTS, READONLY
+
+Disassembly of section .text:
+
+00007c00 <main>:
+    7c00:	11 24       	eor	r1, r1
+    7c02:	84 b7       	in	r24, 0x34	; 52
+    7c04:	14 be       	out	0x34, r1	; 52
+    7c06:	98 2f       	mov	r25, r24
+    7c08:	9d 70       	andi	r25, 0x0D	; 13
+    7c0a:	09 f0       	breq	.+2      	; 0x7c0e <main+0xe>
+    7c0c:	d5 d1       	rcall	.+938    	; 0x7fb8 <appStart>
+    7c0e:	82 e0       	ldi	r24, 0x02	; 2
+    7c10:	80 93 c0 00 	sts	0x00C0, r24	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
+    7c14:	88 e1       	ldi	r24, 0x18	; 24
+    7c16:	80 93 c1 00 	sts	0x00C1, r24	; 0x8000c1 <__TEXT_REGION_LENGTH__+0x7e00c1>
+    7c1a:	86 e0       	ldi	r24, 0x06	; 6
+    7c1c:	80 93 c2 00 	sts	0x00C2, r24	; 0x8000c2 <__TEXT_REGION_LENGTH__+0x7e00c2>
+    7c20:	83 e3       	ldi	r24, 0x33	; 51
+    7c22:	80 93 c4 00 	sts	0x00C4, r24	; 0x8000c4 <__TEXT_REGION_LENGTH__+0x7e00c4>
+    7c26:	89 e2       	ldi	r24, 0x29	; 41
+    7c28:	b2 d1       	rcall	.+868    	; 0x7f8e <watchdogConfig>
+    7c2a:	8e ef       	ldi	r24, 0xFE	; 254
+    7c2c:	80 93 82 02 	sts	0x0282, r24	; 0x800282 <_edata+0x182>
+    7c30:	10 92 81 02 	sts	0x0281, r1	; 0x800281 <_edata+0x181>
+    7c34:	10 92 80 02 	sts	0x0280, r1	; 0x800280 <_edata+0x180>
+    7c38:	10 92 83 02 	sts	0x0283, r1	; 0x800283 <_edata+0x183>
+    7c3c:	c0 e0       	ldi	r28, 0x00	; 0
+    7c3e:	d0 e0       	ldi	r29, 0x00	; 0
+    7c40:	93 e0       	ldi	r25, 0x03	; 3
+    7c42:	f9 2e       	mov	r15, r25
+    7c44:	ee 24       	eor	r14, r14
+    7c46:	e3 94       	inc	r14
+    7c48:	25 e0       	ldi	r18, 0x05	; 5
+    7c4a:	d2 2e       	mov	r13, r18
+    7c4c:	31 e1       	ldi	r19, 0x11	; 17
+    7c4e:	c3 2e       	mov	r12, r19
+    7c50:	79 d1       	rcall	.+754    	; 0x7f44 <getch>
+    7c52:	81 34       	cpi	r24, 0x41	; 65
+    7c54:	71 f4       	brne	.+28     	; 0x7c72 <main+0x72>
+    7c56:	76 d1       	rcall	.+748    	; 0x7f44 <getch>
+    7c58:	18 2f       	mov	r17, r24
+    7c5a:	9f d1       	rcall	.+830    	; 0x7f9a <verifySpace>
+    7c5c:	12 38       	cpi	r17, 0x82	; 130
+    7c5e:	11 f4       	brne	.+4      	; 0x7c64 <main+0x64>
+    7c60:	82 e0       	ldi	r24, 0x02	; 2
+    7c62:	05 c0       	rjmp	.+10     	; 0x7c6e <main+0x6e>
+    7c64:	11 38       	cpi	r17, 0x81	; 129
+    7c66:	11 f4       	brne	.+4      	; 0x7c6c <main+0x6c>
+    7c68:	86 e0       	ldi	r24, 0x06	; 6
+    7c6a:	01 c0       	rjmp	.+2      	; 0x7c6e <main+0x6e>
+    7c6c:	83 e0       	ldi	r24, 0x03	; 3
+    7c6e:	59 d1       	rcall	.+690    	; 0x7f22 <putch>
+    7c70:	68 c0       	rjmp	.+208    	; 0x7d42 <main+0x142>
+    7c72:	82 34       	cpi	r24, 0x42	; 66
+    7c74:	11 f4       	brne	.+4      	; 0x7c7a <main+0x7a>
+    7c76:	84 e1       	ldi	r24, 0x14	; 20
+    7c78:	03 c0       	rjmp	.+6      	; 0x7c80 <main+0x80>
+    7c7a:	85 34       	cpi	r24, 0x45	; 69
+    7c7c:	19 f4       	brne	.+6      	; 0x7c84 <main+0x84>
+    7c7e:	85 e0       	ldi	r24, 0x05	; 5
+    7c80:	94 d1       	rcall	.+808    	; 0x7faa <getNch>
+    7c82:	5f c0       	rjmp	.+190    	; 0x7d42 <main+0x142>
+    7c84:	85 35       	cpi	r24, 0x55	; 85
+    7c86:	41 f4       	brne	.+16     	; 0x7c98 <main+0x98>
+    7c88:	5d d1       	rcall	.+698    	; 0x7f44 <getch>
+    7c8a:	c8 2f       	mov	r28, r24
+    7c8c:	5b d1       	rcall	.+694    	; 0x7f44 <getch>
+    7c8e:	d0 e0       	ldi	r29, 0x00	; 0
+    7c90:	d8 2b       	or	r29, r24
+    7c92:	cc 0f       	add	r28, r28
+    7c94:	dd 1f       	adc	r29, r29
+    7c96:	54 c0       	rjmp	.+168    	; 0x7d40 <main+0x140>
+    7c98:	86 35       	cpi	r24, 0x56	; 86
+    7c9a:	21 f4       	brne	.+8      	; 0x7ca4 <main+0xa4>
+    7c9c:	84 e0       	ldi	r24, 0x04	; 4
+    7c9e:	85 d1       	rcall	.+778    	; 0x7faa <getNch>
+    7ca0:	80 e0       	ldi	r24, 0x00	; 0
+    7ca2:	e5 cf       	rjmp	.-54     	; 0x7c6e <main+0x6e>
+    7ca4:	84 36       	cpi	r24, 0x64	; 100
+    7ca6:	09 f0       	breq	.+2      	; 0x7caa <main+0xaa>
+    7ca8:	32 c0       	rjmp	.+100    	; 0x7d0e <main+0x10e>
+    7caa:	4c d1       	rcall	.+664    	; 0x7f44 <getch>
+    7cac:	4b d1       	rcall	.+662    	; 0x7f44 <getch>
+    7cae:	b8 2e       	mov	r11, r24
+    7cb0:	49 d1       	rcall	.+658    	; 0x7f44 <getch>
+    7cb2:	a8 2e       	mov	r10, r24
+    7cb4:	00 e0       	ldi	r16, 0x00	; 0
+    7cb6:	11 e0       	ldi	r17, 0x01	; 1
+    7cb8:	45 d1       	rcall	.+650    	; 0x7f44 <getch>
+    7cba:	f8 01       	movw	r30, r16
+    7cbc:	81 93       	st	Z+, r24
+    7cbe:	8f 01       	movw	r16, r30
+    7cc0:	be 12       	cpse	r11, r30
+    7cc2:	fa cf       	rjmp	.-12     	; 0x7cb8 <main+0xb8>
+    7cc4:	6a d1       	rcall	.+724    	; 0x7f9a <verifySpace>
+    7cc6:	f5 e4       	ldi	r31, 0x45	; 69
+    7cc8:	af 12       	cpse	r10, r31
+    7cca:	01 c0       	rjmp	.+2      	; 0x7cce <main+0xce>
+    7ccc:	ff cf       	rjmp	.-2      	; 0x7ccc <main+0xcc>
+    7cce:	fe 01       	movw	r30, r28
+    7cd0:	f7 be       	out	0x37, r15	; 55
+    7cd2:	e8 95       	spm
+    7cd4:	07 b6       	in	r0, 0x37	; 55
+    7cd6:	00 fc       	sbrc	r0, 0
+    7cd8:	fd cf       	rjmp	.-6      	; 0x7cd4 <main+0xd4>
+    7cda:	fe 01       	movw	r30, r28
+    7cdc:	a0 e0       	ldi	r26, 0x00	; 0
+    7cde:	b1 e0       	ldi	r27, 0x01	; 1
+    7ce0:	8c 91       	ld	r24, X
+    7ce2:	11 96       	adiw	r26, 0x01	; 1
+    7ce4:	2c 91       	ld	r18, X
+    7ce6:	11 97       	sbiw	r26, 0x01	; 1
+    7ce8:	90 e0       	ldi	r25, 0x00	; 0
+    7cea:	92 2b       	or	r25, r18
+    7cec:	0c 01       	movw	r0, r24
+    7cee:	e7 be       	out	0x37, r14	; 55
+    7cf0:	e8 95       	spm
+    7cf2:	11 24       	eor	r1, r1
+    7cf4:	32 96       	adiw	r30, 0x02	; 2
+    7cf6:	12 96       	adiw	r26, 0x02	; 2
+    7cf8:	ba 12       	cpse	r11, r26
+    7cfa:	f2 cf       	rjmp	.-28     	; 0x7ce0 <main+0xe0>
+    7cfc:	fe 01       	movw	r30, r28
+    7cfe:	d7 be       	out	0x37, r13	; 55
+    7d00:	e8 95       	spm
+    7d02:	07 b6       	in	r0, 0x37	; 55
+    7d04:	00 fc       	sbrc	r0, 0
+    7d06:	fd cf       	rjmp	.-6      	; 0x7d02 <main+0x102>
+    7d08:	c7 be       	out	0x37, r12	; 55
+    7d0a:	e8 95       	spm
+    7d0c:	1a c0       	rjmp	.+52     	; 0x7d42 <main+0x142>
+    7d0e:	84 37       	cpi	r24, 0x74	; 116
+    7d10:	71 f4       	brne	.+28     	; 0x7d2e <main+0x12e>
+    7d12:	18 d1       	rcall	.+560    	; 0x7f44 <getch>
+    7d14:	17 d1       	rcall	.+558    	; 0x7f44 <getch>
+    7d16:	b8 2e       	mov	r11, r24
+    7d18:	15 d1       	rcall	.+554    	; 0x7f44 <getch>
+    7d1a:	3f d1       	rcall	.+638    	; 0x7f9a <verifySpace>
+    7d1c:	8e 01       	movw	r16, r28
+    7d1e:	f8 01       	movw	r30, r16
+    7d20:	85 91       	lpm	r24, Z+
+    7d22:	8f 01       	movw	r16, r30
+    7d24:	fe d0       	rcall	.+508    	; 0x7f22 <putch>
+    7d26:	ba 94       	dec	r11
+    7d28:	b1 10       	cpse	r11, r1
+    7d2a:	f9 cf       	rjmp	.-14     	; 0x7d1e <main+0x11e>
+    7d2c:	0a c0       	rjmp	.+20     	; 0x7d42 <main+0x142>
+    7d2e:	85 37       	cpi	r24, 0x75	; 117
+    7d30:	39 f4       	brne	.+14     	; 0x7d40 <main+0x140>
+    7d32:	33 d1       	rcall	.+614    	; 0x7f9a <verifySpace>
+    7d34:	8e e1       	ldi	r24, 0x1E	; 30
+    7d36:	f5 d0       	rcall	.+490    	; 0x7f22 <putch>
+    7d38:	85 e9       	ldi	r24, 0x95	; 149
+    7d3a:	f3 d0       	rcall	.+486    	; 0x7f22 <putch>
+    7d3c:	8f e0       	ldi	r24, 0x0F	; 15
+    7d3e:	97 cf       	rjmp	.-210    	; 0x7c6e <main+0x6e>
+    7d40:	2c d1       	rcall	.+600    	; 0x7f9a <verifySpace>
+    7d42:	80 e1       	ldi	r24, 0x10	; 16
+    7d44:	ee d0       	rcall	.+476    	; 0x7f22 <putch>
+    7d46:	84 cf       	rjmp	.-248    	; 0x7c50 <main+0x50>
+
+00007d48 <uartPutch>:
+  }
+}
+
+void uartPutch(char ch) {
+#ifndef SOFT_UART
+  while (!(UART_SRA & _BV(UDRE0)));
+    7d48:	90 91 c0 00 	lds	r25, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
+    7d4c:	95 ff       	sbrs	r25, 5
+    7d4e:	fc cf       	rjmp	.-8      	; 0x7d48 <uartPutch>
+  UART_UDR = ch;
+    7d50:	80 93 c6 00 	sts	0x00C6, r24	; 0x8000c6 <__TEXT_REGION_LENGTH__+0x7e00c6>
+    7d54:	08 95       	ret
+
+00007d56 <escPutch>:
+  if (ch != 0x7d)
+    return ch;
+  return 0x20 ^ uartGetch();
+}
+
+static void escPutch(char ch) {
+    7d56:	cf 93       	push	r28
+    7d58:	c8 2f       	mov	r28, r24
+  //if (ch >= 0x7d || (uint8_t)ch <= 0x13) {
+  if (ch == 0x7d || ch == 0x7e || ch == 0x11 || ch == 0x13) {
+    7d5a:	83 e8       	ldi	r24, 0x83	; 131
+    7d5c:	8c 0f       	add	r24, r28
+    7d5e:	82 30       	cpi	r24, 0x02	; 2
+    7d60:	20 f0       	brcs	.+8      	; 0x7d6a <escPutch+0x14>
+    7d62:	8c 2f       	mov	r24, r28
+    7d64:	8d 7f       	andi	r24, 0xFD	; 253
+    7d66:	81 31       	cpi	r24, 0x11	; 17
+    7d68:	21 f4       	brne	.+8      	; 0x7d72 <escPutch+0x1c>
+    uartPutch(0x7d);
+    7d6a:	8d e7       	ldi	r24, 0x7D	; 125
+    7d6c:	ed df       	rcall	.-38     	; 0x7d48 <uartPutch>
+    ch ^= 0x20;
+    7d6e:	80 e2       	ldi	r24, 0x20	; 32
+    7d70:	c8 27       	eor	r28, r24
+  }
+  uartPutch(ch);
+}
+    7d72:	8c 2f       	mov	r24, r28
+  //if (ch >= 0x7d || (uint8_t)ch <= 0x13) {
+  if (ch == 0x7d || ch == 0x7e || ch == 0x11 || ch == 0x13) {
+    uartPutch(0x7d);
+    ch ^= 0x20;
+  }
+  uartPutch(ch);
+    7d74:	cf 91       	pop	r28
+    7d76:	e8 cf       	rjmp	.-48     	; 0x7d48 <uartPutch>
+
+00007d78 <transmit>:
+}
+
+#define TXHEADER_BYTES 14
+static __attribute__((__noinline__))
+void transmit(const uint8_t length) {
+    7d78:	0f 93       	push	r16
+    7d7a:	1f 93       	push	r17
+    7d7c:	cf 93       	push	r28
+    7d7e:	df 93       	push	r29
+    7d80:	d8 2f       	mov	r29, r24
+#define XBEE_BROADCAST_RADIUS 0
+#define XBEE_TX_OPTIONS 0
+  outputBuffer[0] = 0x10; /* ZigBee Transmit Request */
+    7d82:	80 e1       	ldi	r24, 0x10	; 16
+    7d84:	80 93 00 04 	sts	0x0400, r24	; 0x800400 <_edata+0x300>
+  outputBuffer[1] = 0; /* Delivery sequence */
+    7d88:	10 92 01 04 	sts	0x0401, r1	; 0x800401 <_edata+0x301>
+  /* outputBuffer[2..11] = lastAddress */
+  outputBuffer[12] = XBEE_BROADCAST_RADIUS; /* Broadcast radius */
+    7d8c:	10 92 0c 04 	sts	0x040C, r1	; 0x80040c <_edata+0x30c>
+  outputBuffer[13] = XBEE_TX_OPTIONS; /* Options */
+    7d90:	10 92 0d 04 	sts	0x040D, r1	; 0x80040d <_edata+0x30d>
+
+  uartPutch(0x7e);
+  escPutch(0); /* Length MSB */
+    7d94:	8e e7       	ldi	r24, 0x7E	; 126
+    7d96:	d8 df       	rcall	.-80     	; 0x7d48 <uartPutch>
+    7d98:	80 e0       	ldi	r24, 0x00	; 0
+  escPutch(length); /* Length LSB */
+    7d9a:	dd df       	rcall	.-70     	; 0x7d56 <escPutch>
+    7d9c:	8d 2f       	mov	r24, r29
+    7d9e:	db df       	rcall	.-74     	; 0x7d56 <escPutch>
+
+  uint8_t checksum = 0xff;
+  uint8_t index;
+  for (index = 0; index < length; index++) {
+    7da0:	00 e0       	ldi	r16, 0x00	; 0
+    7da2:	14 e0       	ldi	r17, 0x04	; 4
+
+  uartPutch(0x7e);
+  escPutch(0); /* Length MSB */
+  escPutch(length); /* Length LSB */
+
+  uint8_t checksum = 0xff;
+    7da4:	cf ef       	ldi	r28, 0xFF	; 255
+  uint8_t index;
+  for (index = 0; index < length; index++) {
+    7da6:	0d 17       	cp	r16, r29
+    const uint8_t val = outputBuffer[index];
+    7da8:	30 f4       	brcc	.+12     	; 0x7db6 <transmit+0x3e>
+    7daa:	f8 01       	movw	r30, r16
+    7dac:	81 91       	ld	r24, Z+
+    checksum -= val;
+    7dae:	8f 01       	movw	r16, r30
+    escPutch(val);
+    7db0:	c8 1b       	sub	r28, r24
+    7db2:	d1 df       	rcall	.-94     	; 0x7d56 <escPutch>
+  }
+
+  escPutch(checksum);
+    7db4:	f8 cf       	rjmp	.-16     	; 0x7da6 <transmit+0x2e>
+}
+    7db6:	8c 2f       	mov	r24, r28
+    7db8:	df 91       	pop	r29
+    7dba:	cf 91       	pop	r28
+    7dbc:	1f 91       	pop	r17
+    const uint8_t val = outputBuffer[index];
+    checksum -= val;
+    escPutch(val);
+  }
+
+  escPutch(checksum);
+    7dbe:	0f 91       	pop	r16
+    7dc0:	ca cf       	rjmp	.-108    	; 0x7d56 <escPutch>
+
+00007dc2 <uartGetch>:
+      [uartBit] "I" (UART_RX_BIT)
+    :
+      "r25"
+);
+#else
+  while(!(UART_SRA & _BV(RXC0)))
+    7dc2:	80 91 c0 00 	lds	r24, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
+    7dc6:	87 ff       	sbrs	r24, 7
+    7dc8:	fc cf       	rjmp	.-8      	; 0x7dc2 <uartGetch>
+    ;
+  if (!(UART_SRA & _BV(FE0))) {
+    7dca:	80 91 c0 00 	lds	r24, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
+}
+#endif
+
+// Watchdog functions. These are only safe with interrupts turned off.
+void watchdogReset() {
+  __asm__ __volatile__ (
+    7dce:	84 fd       	sbrc	r24, 4
+       * don't care that an invalid char is returned...)
+       */
+    watchdogReset();
+  }
+
+  ch = UART_UDR;
+    7dd0:	01 c0       	rjmp	.+2      	; 0x7dd4 <uartGetch+0x12>
+    7dd2:	a8 95       	wdr
+  LED_PIN |= _BV(LED);
+#endif
+#endif
+
+  return ch;
+}
+    7dd4:	80 91 c6 00 	lds	r24, 0x00C6	; 0x8000c6 <__TEXT_REGION_LENGTH__+0x7e00c6>
+    7dd8:	08 95       	ret
+
+00007dda <escGetch>:
+}
+#endif
+
+static __attribute__((__noinline__))
+uint8_t escGetch(void) {
+  const uint8_t ch = uartGetch();
+    7dda:	f3 df       	rcall	.-26     	; 0x7dc2 <uartGetch>
+    7ddc:	8d 37       	cpi	r24, 0x7D	; 125
+  if (ch != 0x7d)
+    7dde:	19 f4       	brne	.+6      	; 0x7de6 <escGetch+0xc>
+    7de0:	f0 df       	rcall	.-32     	; 0x7dc2 <uartGetch>
+    return ch;
+  return 0x20 ^ uartGetch();
+    7de2:	90 e2       	ldi	r25, 0x20	; 32
+    7de4:	89 27       	eor	r24, r25
+    7de6:	08 95       	ret
+
+00007de8 <poll>:
+  outputPayload[1] = sequence;
+  transmit(TXHEADER_BYTES + 2);
+}
+
+static __attribute__((__noinline__))
+uint8_t poll(uint8_t waitForAck) {
+    7de8:	cf 92       	push	r12
+    7dea:	df 92       	push	r13
+    7dec:	ff 92       	push	r15
+    7dee:	0f 93       	push	r16
+    7df0:	1f 93       	push	r17
+    7df2:	cf 93       	push	r28
+    7df4:	df 93       	push	r29
+    7df6:	f8 2e       	mov	r15, r24
+    7df8:	d0 e0       	ldi	r29, 0x00	; 0
+    7dfa:	e3 df       	rcall	.-58     	; 0x7dc2 <uartGetch>
+    7dfc:	8e 37       	cpi	r24, 0x7E	; 126
+    7dfe:	e9 f7       	brne	.-6      	; 0x7dfa <poll+0x12>
+    7e00:	ec df       	rcall	.-40     	; 0x7dda <escGetch>
+    7e02:	08 2f       	mov	r16, r24
+    7e04:	81 11       	cpse	r24, r1
+    7e06:	f9 cf       	rjmp	.-14     	; 0x7dfa <poll+0x12>
+    7e08:	e8 df       	rcall	.-48     	; 0x7dda <escGetch>
+    7e0a:	c8 2f       	mov	r28, r24
+    7e0c:	80 e8       	ldi	r24, 0x80	; 128
+    7e0e:	c8 2e       	mov	r12, r24
+    7e10:	83 e0       	ldi	r24, 0x03	; 3
+    7e12:	d8 2e       	mov	r13, r24
+    7e14:	1f ef       	ldi	r17, 0xFF	; 255
+    7e16:	80 e8       	ldi	r24, 0x80	; 128
+    7e18:	8c 0d       	add	r24, r12
+    7e1a:	8c 17       	cp	r24, r28
+    7e1c:	30 f4       	brcc	.+12     	; 0x7e2a <poll+0x42>
+    7e1e:	dd df       	rcall	.-70     	; 0x7dda <escGetch>
+    7e20:	f6 01       	movw	r30, r12
+    7e22:	81 93       	st	Z+, r24
+    7e24:	6f 01       	movw	r12, r30
+    7e26:	18 1b       	sub	r17, r24
+    7e28:	f6 cf       	rjmp	.-20     	; 0x7e16 <poll+0x2e>
+    7e2a:	d7 df       	rcall	.-82     	; 0x7dda <escGetch>
+    7e2c:	18 13       	cpse	r17, r24
+    7e2e:	e5 cf       	rjmp	.-54     	; 0x7dfa <poll+0x12>
+    7e30:	80 91 80 03 	lds	r24, 0x0380	; 0x800380 <_edata+0x280>
+    7e34:	80 39       	cpi	r24, 0x90	; 144
+    7e36:	09 f7       	brne	.-62     	; 0x7dfa <poll+0x12>
+    7e38:	80 91 8c 03 	lds	r24, 0x038C	; 0x80038c <_edata+0x28c>
+    7e3c:	10 91 8d 03 	lds	r17, 0x038D	; 0x80038d <_edata+0x28d>
+    7e40:	ce 30       	cpi	r28, 0x0E	; 14
+    7e42:	59 f4       	brne	.+22     	; 0x7e5a <poll+0x72>
+    7e44:	ff 20       	and	r15, r15
+    7e46:	c9 f2       	breq	.-78     	; 0x7dfa <poll+0x12>
+    7e48:	81 11       	cpse	r24, r1
+    7e4a:	d7 cf       	rjmp	.-82     	; 0x7dfa <poll+0x12>
+    7e4c:	1f 15       	cp	r17, r15
+    7e4e:	09 f4       	brne	.+2      	; 0x7e52 <poll+0x6a>
+    7e50:	3c c0       	rjmp	.+120    	; 0x7eca <poll+0xe2>
+    7e52:	d1 11       	cpse	r29, r1
+    7e54:	39 c0       	rjmp	.+114    	; 0x7ec8 <poll+0xe0>
+    7e56:	d1 e0       	ldi	r29, 0x01	; 1
+    7e58:	d0 cf       	rjmp	.-96     	; 0x7dfa <poll+0x12>
+    7e5a:	c0 31       	cpi	r28, 0x10	; 16
+    7e5c:	70 f2       	brcs	.-100    	; 0x7dfa <poll+0x12>
+    7e5e:	81 30       	cpi	r24, 0x01	; 1
+    7e60:	61 f6       	brne	.-104    	; 0x7dfa <poll+0x12>
+    7e62:	80 91 8e 03 	lds	r24, 0x038E	; 0x80038e <_edata+0x28e>
+    7e66:	87 31       	cpi	r24, 0x17	; 23
+    7e68:	41 f6       	brne	.-112    	; 0x7dfa <poll+0x12>
+    7e6a:	a2 e0       	ldi	r26, 0x02	; 2
+    7e6c:	b4 e0       	ldi	r27, 0x04	; 4
+    7e6e:	e1 e8       	ldi	r30, 0x81	; 129
+    7e70:	f3 e0       	ldi	r31, 0x03	; 3
+    7e72:	81 91       	ld	r24, Z+
+    7e74:	8d 93       	st	X+, r24
+    7e76:	eb 38       	cpi	r30, 0x8B	; 139
+    7e78:	83 e0       	ldi	r24, 0x03	; 3
+    7e7a:	f8 07       	cpc	r31, r24
+    7e7c:	d1 f7       	brne	.-12     	; 0x7e72 <poll+0x8a>
+    7e7e:	80 91 80 02 	lds	r24, 0x0280	; 0x800280 <_edata+0x180>
+    7e82:	98 2f       	mov	r25, r24
+    7e84:	9f 5f       	subi	r25, 0xFF	; 255
+    7e86:	f1 f3       	breq	.-4      	; 0x7e84 <poll+0x9c>
+    7e88:	19 17       	cp	r17, r25
+    7e8a:	29 f0       	breq	.+10     	; 0x7e96 <poll+0xae>
+    7e8c:	dd 23       	and	r29, r29
+    7e8e:	19 f3       	breq	.-58     	; 0x7e56 <poll+0x6e>
+    7e90:	df 5f       	subi	r29, 0xFF	; 255
+    7e92:	98 d0       	rcall	.+304    	; 0x7fc4 <sendAck>
+    7e94:	b2 cf       	rjmp	.-156    	; 0x7dfa <poll+0x12>
+    7e96:	80 91 82 02 	lds	r24, 0x0282	; 0x800282 <_edata+0x182>
+    7e9a:	81 11       	cpse	r24, r1
+    7e9c:	ae cf       	rjmp	.-164    	; 0x7dfa <poll+0x12>
+    7e9e:	cf 50       	subi	r28, 0x0F	; 15
+    7ea0:	ec 2f       	mov	r30, r28
+    7ea2:	f0 e0       	ldi	r31, 0x00	; 0
+    7ea4:	fd 5f       	subi	r31, 0xFD	; 253
+    7ea6:	af e8       	ldi	r26, 0x8F	; 143
+    7ea8:	b3 e0       	ldi	r27, 0x03	; 3
+    7eaa:	8d 91       	ld	r24, X+
+    7eac:	82 93       	st	-Z, r24
+    7eae:	81 e7       	ldi	r24, 0x71	; 113
+    7eb0:	8a 0f       	add	r24, r26
+    7eb2:	8c 17       	cp	r24, r28
+    7eb4:	d0 f3       	brcs	.-12     	; 0x7eaa <poll+0xc2>
+    7eb6:	c0 93 82 02 	sts	0x0282, r28	; 0x800282 <_edata+0x182>
+    7eba:	81 2f       	mov	r24, r17
+    7ebc:	83 d0       	rcall	.+262    	; 0x7fc4 <sendAck>
+    7ebe:	10 93 80 02 	sts	0x0280, r17	; 0x800280 <_edata+0x180>
+    7ec2:	f1 10       	cpse	r15, r1
+    7ec4:	9a cf       	rjmp	.-204    	; 0x7dfa <poll+0x12>
+    7ec6:	01 c0       	rjmp	.+2      	; 0x7eca <poll+0xe2>
+    7ec8:	01 e0       	ldi	r16, 0x01	; 1
+    7eca:	80 2f       	mov	r24, r16
+    7ecc:	df 91       	pop	r29
+    7ece:	cf 91       	pop	r28
+    7ed0:	1f 91       	pop	r17
+    7ed2:	0f 91       	pop	r16
+    7ed4:	ff 90       	pop	r15
+    7ed6:	df 90       	pop	r13
+    7ed8:	cf 90       	pop	r12
+    7eda:	08 95       	ret
+
+00007edc <pushBuffer>:
+    }
+  }
+}
+
+static __attribute__((noinline)) 
+void pushBuffer(const uint8_t max) {
+    7edc:	1f 93       	push	r17
+    7ede:	cf 93       	push	r28
+    7ee0:	df 93       	push	r29
+  if (outputIndex <= max)
+    7ee2:	90 91 83 02 	lds	r25, 0x0283	; 0x800283 <_edata+0x183>
+    7ee6:	89 17       	cp	r24, r25
+    7ee8:	c0 f4       	brcc	.+48     	; 0x7f1a <pushBuffer+0x3e>
+    return;
+
+  uint8_t sequence = lastOutgoingSequence;
+    7eea:	c0 91 81 02 	lds	r28, 0x0281	; 0x800281 <_edata+0x181>
+  while ((++sequence & 0xff) == 0);
+  lastOutgoingSequence = sequence;
+    7eee:	cf 5f       	subi	r28, 0xFF	; 255
+    7ef0:	f1 f3       	breq	.-4      	; 0x7eee <pushBuffer+0x12>
+
+  do {
+    outputPayload[0] = 1 /* REQUEST */;
+    7ef2:	c0 93 81 02 	sts	0x0281, r28	; 0x800281 <_edata+0x181>
+    7ef6:	11 e0       	ldi	r17, 0x01	; 1
+    7ef8:	d8 e1       	ldi	r29, 0x18	; 24
+    outputPayload[1] = sequence;
+    7efa:	10 93 0e 04 	sts	0x040E, r17	; 0x80040e <_edata+0x30e>
+    outputPayload[2] = 24 /* FIRMWARE_REPLY */;
+    7efe:	c0 93 0f 04 	sts	0x040F, r28	; 0x80040f <_edata+0x30f>
+    transmit(TXHEADER_BYTES + 3 + outputIndex);
+    7f02:	d0 93 10 04 	sts	0x0410, r29	; 0x800410 <_edata+0x310>
+    7f06:	80 91 83 02 	lds	r24, 0x0283	; 0x800283 <_edata+0x183>
+  } while (poll(sequence));
+    7f0a:	8f 5e       	subi	r24, 0xEF	; 239
+    7f0c:	35 df       	rcall	.-406    	; 0x7d78 <transmit>
+    7f0e:	8c 2f       	mov	r24, r28
+    7f10:	6b df       	rcall	.-298    	; 0x7de8 <poll>
+    7f12:	81 11       	cpse	r24, r1
+
+  outputIndex = 0;
+    7f14:	f2 cf       	rjmp	.-28     	; 0x7efa <pushBuffer+0x1e>
+    7f16:	10 92 83 02 	sts	0x0283, r1	; 0x800283 <_edata+0x183>
+}
+    7f1a:	df 91       	pop	r29
+    7f1c:	cf 91       	pop	r28
+    7f1e:	1f 91       	pop	r17
+    7f20:	08 95       	ret
+
+00007f22 <putch>:
+
+void putch(const char ch) {
+    7f22:	90 91 82 02 	lds	r25, 0x0282	; 0x800282 <_edata+0x182>
+    7f26:	9d 3f       	cpi	r25, 0xFD	; 253
+    7f28:	09 f4       	brne	.+2      	; 0x7f2c <putch+0xa>
+    7f2a:	0e cf       	rjmp	.-484    	; 0x7d48 <uartPutch>
+    7f2c:	e0 91 83 02 	lds	r30, 0x0283	; 0x800283 <_edata+0x183>
+    7f30:	91 e0       	ldi	r25, 0x01	; 1
+    7f32:	9e 0f       	add	r25, r30
+    7f34:	90 93 83 02 	sts	0x0283, r25	; 0x800283 <_edata+0x183>
+    7f38:	f0 e0       	ldi	r31, 0x00	; 0
+    7f3a:	ef 5e       	subi	r30, 0xEF	; 239
+    7f3c:	fb 4f       	sbci	r31, 0xFB	; 251
+    7f3e:	80 83       	st	Z, r24
+    7f40:	80 e4       	ldi	r24, 0x40	; 64
+    7f42:	cc cf       	rjmp	.-104    	; 0x7edc <pushBuffer>
+
+00007f44 <getch>:
+/*
+ * main() does a getch() before a putch(), so we can determine the
+ * protocol here first.
+ */
+uint8_t getch(void) {
+  pushBuffer(0);
+    7f44:	80 e0       	ldi	r24, 0x00	; 0
+    7f46:	ca df       	rcall	.-108    	; 0x7edc <pushBuffer>
+    7f48:	80 91 82 02 	lds	r24, 0x0282	; 0x800282 <_edata+0x182>
+
+ loop:
+  switch (frameMode) {
+    7f4c:	8d 3f       	cpi	r24, 0xFD	; 253
+    7f4e:	29 f0       	breq	.+10     	; 0x7f5a <getch+0x16>
+    7f50:	8e 3f       	cpi	r24, 0xFE	; 254
+    7f52:	21 f0       	breq	.+8      	; 0x7f5c <getch+0x18>
+    7f54:	81 11       	cpse	r24, r1
+    7f56:	12 c0       	rjmp	.+36     	; 0x7f7c <getch+0x38>
+    7f58:	0f c0       	rjmp	.+30     	; 0x7f78 <getch+0x34>
+  case FRAME_UART:
+    return uartGetch();
+    7f5a:	33 cf       	rjmp	.-410    	; 0x7dc2 <uartGetch>
+    7f5c:	32 df       	rcall	.-412    	; 0x7dc2 <uartGetch>
+  case FRAME_UNKNOWN:
+    {
+      uint8_t ch = uartGetch();
+    7f5e:	8e 37       	cpi	r24, 0x7E	; 126
+    7f60:	49 f0       	breq	.+18     	; 0x7f74 <getch+0x30>
+      switch (ch) {
+    7f62:	80 39       	cpi	r24, 0x90	; 144
+    7f64:	39 f0       	breq	.+14     	; 0x7f74 <getch+0x30>
+    7f66:	80 33       	cpi	r24, 0x30	; 48
+    7f68:	79 f7       	brne	.-34     	; 0x7f48 <getch+0x4>
+    7f6a:	8d ef       	ldi	r24, 0xFD	; 253
+    7f6c:	80 93 82 02 	sts	0x0282, r24	; 0x800282 <_edata+0x182>
+      case 0x30:
+        /* Cmnd_STK_GET_SYNC */
+        frameMode = FRAME_UART;
+    7f70:	80 e3       	ldi	r24, 0x30	; 48
+  switch (frameMode) {
+  case FRAME_UART:
+    return uartGetch();
+  case FRAME_UNKNOWN:
+    {
+      uint8_t ch = uartGetch();
+    7f72:	08 95       	ret
+         * matching a 0x30 go up.  In particular, the first 0x90
+         * packet we see is almost certainly delivering a 0x30 in its
+         * payload.
+         */
+
+        frameMode = FRAME_FRAME;
+    7f74:	10 92 82 02 	sts	0x0282, r1	; 0x800282 <_edata+0x182>
+  case FRAME_FRAME:
+    /*
+     * NB: Will not return unless the packet buffer has been
+     * re-populated, so we can then immediately read from the buffer.
+     */
+    poll(0);
+    7f78:	80 e0       	ldi	r24, 0x00	; 0
+    7f7a:	36 df       	rcall	.-404    	; 0x7de8 <poll>
+    /* FALLTHROUGH */
+  default:
+    return packetBuffer[--frameMode];
+    7f7c:	e0 91 82 02 	lds	r30, 0x0282	; 0x800282 <_edata+0x182>
+    7f80:	e1 50       	subi	r30, 0x01	; 1
+    7f82:	e0 93 82 02 	sts	0x0282, r30	; 0x800282 <_edata+0x182>
+  }
+}
+    7f86:	f0 e0       	ldi	r31, 0x00	; 0
+    7f88:	fd 5f       	subi	r31, 0xFD	; 253
+    7f8a:	80 81       	ld	r24, Z
+    7f8c:	08 95       	ret
+
+00007f8e <watchdogConfig>:
+    "wdr\n"
+  );
+}
+
+void watchdogConfig(uint8_t x) {
+  WDTCSR = _BV(WDCE) | _BV(WDE);
+    7f8e:	e0 e6       	ldi	r30, 0x60	; 96
+    7f90:	f0 e0       	ldi	r31, 0x00	; 0
+    7f92:	98 e1       	ldi	r25, 0x18	; 24
+    7f94:	90 83       	st	Z, r25
+  WDTCSR = x;
+    7f96:	80 83       	st	Z, r24
+    7f98:	08 95       	ret
+
+00007f9a <verifySpace>:
+  do getch(); while (--count);
+  verifySpace();
+}
+
+void verifySpace() {
+  if (getch() != CRC_EOP) {
+    7f9a:	d4 df       	rcall	.-88     	; 0x7f44 <getch>
+    7f9c:	80 32       	cpi	r24, 0x20	; 32
+    7f9e:	19 f0       	breq	.+6      	; 0x7fa6 <verifySpace+0xc>
+    7fa0:	88 e0       	ldi	r24, 0x08	; 8
+    watchdogConfig(WATCHDOG_16MS);    // shorten WD timeout
+    7fa2:	f5 df       	rcall	.-22     	; 0x7f8e <watchdogConfig>
+    7fa4:	ff cf       	rjmp	.-2      	; 0x7fa4 <verifySpace+0xa>
+    7fa6:	84 e1       	ldi	r24, 0x14	; 20
+    7fa8:	bc cf       	rjmp	.-136    	; 0x7f22 <putch>
+
+00007faa <getNch>:
+  default:
+    return packetBuffer[--frameMode];
+  }
+}
+
+void getNch(uint8_t count) {
+    7faa:	cf 93       	push	r28
+    7fac:	c8 2f       	mov	r28, r24
+  do getch(); while (--count);
+    7fae:	ca df       	rcall	.-108    	; 0x7f44 <getch>
+    7fb0:	c1 50       	subi	r28, 0x01	; 1
+    7fb2:	e9 f7       	brne	.-6      	; 0x7fae <getNch+0x4>
+    7fb4:	cf 91       	pop	r28
+  verifySpace();
+}
+    7fb6:	f1 cf       	rjmp	.-30     	; 0x7f9a <verifySpace>
+
+00007fb8 <appStart>:
+    7fb8:	28 2e       	mov	r2, r24
+    7fba:	80 e0       	ldi	r24, 0x00	; 0
+    7fbc:	e8 df       	rcall	.-48     	; 0x7f8e <watchdogConfig>
+    7fbe:	e0 e0       	ldi	r30, 0x00	; 0
+    7fc0:	ff 27       	eor	r31, r31
+    7fc2:	09 94       	ijmp
+
+00007fc4 <sendAck>:
+  escPutch(checksum);
+}
+
+static __attribute__((__noinline__))
+void sendAck(const uint8_t sequence) {
+  outputPayload[0] = 0 /* ACK */;
+    7fc4:	10 92 0e 04 	sts	0x040E, r1	; 0x80040e <_edata+0x30e>
+  outputPayload[1] = sequence;
+    7fc8:	80 93 0f 04 	sts	0x040F, r24	; 0x80040f <_edata+0x30f>
+  transmit(TXHEADER_BYTES + 2);
+    7fcc:	80 e1       	ldi	r24, 0x10	; 16
+    7fce:	d4 ce       	rjmp	.-600    	; 0x7d78 <transmit>
