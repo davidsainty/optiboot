@@ -301,7 +301,7 @@ static int sendPacket(struct XBeeBootSession *xbs,
  */
 #define XBEE_AT_RETURN_CODE(x) (((x) >= -512 && (x) <= -256) ? (x) + 512 : -1)
 static int xbeedev_poll(struct XBeeBootSession *xbs,
-                        unsigned char *buf, size_t buflen,
+                        unsigned char **buf, size_t *buflen,
                         int waitForAck,
                         int waitForSequence)
 {
@@ -511,10 +511,10 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
             size_t index;
             for (index = 0; index < textLength; index++) {
               const unsigned char data = dataStart[3 + index];
-              if (buflen > 0) {
+              if (buflen != NULL && *buflen > 0) {
                 /* If we are receiving right now, and have a buffer... */
-                *buf++ = data;
-                buflen--;
+                *(*buf)++ = data;
+                (*buflen)--;
               } else {
                 xbs->inBuffer[xbs->inInIndex++] = data;
                 if (xbs->inInIndex == sizeof(xbs->inBuffer))
@@ -530,7 +530,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
             /*avrdude_message(MSG_INFO, "ACK %x\n", (unsigned int)sequence);*/
             sendPacket(xbs, 0 /* ACK */, sequence, -1, 0, NULL);
 
-            if (buflen == 0 && buf != NULL)
+            if (buf != NULL && *buflen == 0)
               /* Input buffer has been filled */
               return 0;
           }
@@ -570,7 +570,7 @@ static int localAT(struct XBeeBootSession *xbs,
 
   int retries;
   for (retries = 0; retries < 5; retries++) {
-    const int rc = xbeedev_poll(xbs, NULL, 0, -1, sequence);
+    const int rc = xbeedev_poll(xbs, NULL, NULL, -1, sequence);
     if (!rc)
       return rc;
   }
@@ -615,7 +615,7 @@ static int sendAT(struct XBeeBootSession *xbs,
 
   int retries;
   for (retries = 0; retries < 30; retries++) {
-    const int rc = xbeedev_poll(xbs, NULL, 0, -1, sequence);
+    const int rc = xbeedev_poll(xbs, NULL, NULL, -1, sequence);
     const int xbeeRc = XBEE_AT_RETURN_CODE(rc);
     if (xbeeRc == 0)
       /* Translate to normal success code */
@@ -892,7 +892,7 @@ static int xbeedev_send(union filedescriptor *fdp,
         return sendRc;
       }
 
-      pollRc = xbeedev_poll(xbs, NULL, 0, sequence, -1);
+      pollRc = xbeedev_poll(xbs, NULL, NULL, sequence, -1);
       if (pollRc == 0) {
         /* Send was ACK'd */
         buflen -= blockLength;
@@ -948,8 +948,8 @@ static int xbeedev_recv(union filedescriptor *fdp,
 
   int retries;
   for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
-    const int rc = xbeedev_poll(xbs, buf, buflen, -1, -1);
-    if (!rc)
+    const int rc = xbeedev_poll(xbs, &buf, &buflen, -1, -1);
+    if (rc == 0)
       return rc;
 
     /*
@@ -974,10 +974,9 @@ static int xbeedev_drain(union filedescriptor *fdp, int display)
    * Flushing the local serial buffer is unhelpful under this
    * protocol.
    */
-  unsigned char flush;
   do {
     xbs->inOutIndex = xbs->inInIndex = 0;
-  } while (xbeedev_poll(xbs, &flush, 1, -1, -1) == 0);
+  } while (xbeedev_poll(xbs, NULL, NULL, -1, -1) == 0);
 
   return 0;
 }
