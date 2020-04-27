@@ -981,7 +981,8 @@ static void xbee_close(PROGRAMMER *pgm)
   }
 
   xbeedev_free(xbs);
-  pgm->fd.ifd = -1;
+
+  pgm->fd.pfd = NULL;
 }
 
 const char xbee_desc[] = "XBee Series 2 Over-The-Air (XBeeBoot)";
