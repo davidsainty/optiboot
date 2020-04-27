@@ -1128,7 +1128,7 @@ static void xbee_close(PROGRAMMER *pgm)
    * restoring the device to its normal power-on settings.
    *
    * Note that this DOES mean that the remote XBee will be
-   * uncontactable until it has restarted and reestablished
+   * uncontactable until it has restarted and re-established
    * communications on the mesh.
    */
   if (!xbs->directMode) {
