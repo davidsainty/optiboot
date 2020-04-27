@@ -47,8 +47,7 @@
  * Read signature bytes - Direct copy of the Arduino behaviour to
  * satisfy Optiboot.
  */
-static int xbee_read_sig_bytes(PROGRAMMER * const pgm, AVRPART * const p,
-                               AVRMEM * const m)
+static int xbee_read_sig_bytes(PROGRAMMER *pgm, AVRPART *p, AVRMEM *m)
 {
   unsigned char buf[32];
 
@@ -119,15 +118,15 @@ static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
 #define xbeebootsession(fdp) (struct XBeeBootSession*)((fdp)->pfd)
 
 static void sendAPIRequest(struct XBeeBootSession *xbs,
-                           const unsigned char apiType,
-                           const int apiOption,
-                           const int prePayload1,
-                           const int prePayload2,
-                           const int packetType,
-                           const int sequence,
-                           const int appType,
-                           const unsigned int dataLength,
-                           const unsigned char * const data)
+                           unsigned char apiType,
+                           int apiOption,
+                           int prePayload1,
+                           int prePayload2,
+                           int packetType,
+                           int sequence,
+                           int appType,
+                           unsigned int dataLength,
+                           const unsigned char *data)
 {
   unsigned char frame[256];
 
@@ -218,11 +217,11 @@ static void sendAPIRequest(struct XBeeBootSession *xbs,
 static unsigned char txSequence = 0;
 
 static void sendPacket(struct XBeeBootSession *xbs,
-                       const unsigned char packetType,
-                       const unsigned char sequence,
-                       const int appType,
-                       const unsigned int dataLength,
-                       const unsigned char * const data)
+                       unsigned char packetType,
+                       unsigned char sequence,
+                       int appType,
+                       unsigned int dataLength,
+                       const unsigned char *data)
 {
   unsigned char apiType;
   int prePayload1;
@@ -262,8 +261,8 @@ static void sendPacket(struct XBeeBootSession *xbs,
 #define XBEE_AT_RETURN_CODE(x) (((x) >= -512 && (x) <= -256) ? (x) + 512 : -1)
 static int xbeedev_poll(struct XBeeBootSession *xbs,
                         unsigned char *buf, size_t buflen,
-                        const int waitForAck,
-                        const int waitForSequence)
+                        int waitForAck,
+                        int waitForSequence)
 {
 #define XBEE_LENGTH_LEN 2
 #define XBEE_CHECKSUM_LEN 1
@@ -501,8 +500,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
 }
 
 static int localAT(struct XBeeBootSession *xbs,
-                   const unsigned char at1, const unsigned char at2,
-                   const int value)
+                   unsigned char at1, unsigned char at2, int value)
 {
   if (xbs->directMode)
     /*
@@ -545,8 +543,7 @@ static int localAT(struct XBeeBootSession *xbs,
  * Return -512 + XBee AT Response code
  */
 static int sendAT(struct XBeeBootSession *xbs,
-                  const unsigned char at1, const unsigned char at2,
-                  const int value)
+                  unsigned char at1, unsigned char at2, int value)
 {
   if (xbs->directMode)
     /*
@@ -593,7 +590,7 @@ static int sendAT(struct XBeeBootSession *xbs,
  * Return 0 on no error recognised, 1 if error was detected and
  * reported.
  */
-static int xbeeATError(const int rc) {
+static int xbeeATError(int rc) {
   const int xbeeRc = XBEE_AT_RETURN_CODE(rc);
   if (xbeeRc < 0)
     return 0;
@@ -632,7 +629,7 @@ static void xbeedev_close(union filedescriptor *fdp)
   xbeedev_free(xbs);
 }
 
-static int xbeedev_open(char * const port, union pinfo pinfo,
+static int xbeedev_open(char *port, union pinfo pinfo,
                         union filedescriptor *fdp)
 {
   /*
@@ -876,7 +873,7 @@ static int xbeedev_recv(union filedescriptor *fdp,
   return -1;
 }
 
-static int xbeedev_drain(union filedescriptor *fdp, const int display)
+static int xbeedev_drain(union filedescriptor *fdp, int display)
 {
   struct XBeeBootSession *xbs = xbeebootsession(fdp);
 
@@ -930,7 +927,7 @@ static struct serial_device xbee_serdev_frame = {
   .flags = SERDEV_FL_NONE,
 };
 
-static int xbee_open(PROGRAMMER * const pgm, char * const port)
+static int xbee_open(PROGRAMMER *pgm, char *port)
 {
   union pinfo pinfo;
   strcpy(pgm->port, port);
@@ -987,7 +984,7 @@ static void xbee_close(PROGRAMMER *pgm)
 
 const char xbee_desc[] = "XBee Series 2 Over-The-Air (XBeeBoot)";
 
-void xbee_initpgm(PROGRAMMER * const pgm)
+void xbee_initpgm(PROGRAMMER *pgm)
 {
   /*
    * This behaves like an Arduino, but with packet encapsulation of
