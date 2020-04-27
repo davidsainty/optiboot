@@ -620,7 +620,7 @@ static int xbeeATError(const int rc) {
   return 1;
 }
 
-static void xbeedev_xbsclose(struct XBeeBootSession *xbs)
+static void xbeedev_free(struct XBeeBootSession *xbs)
 {
   xbs->serialDevice->close(&xbs->serialDescriptor);
   free(xbs);
@@ -629,7 +629,7 @@ static void xbeedev_xbsclose(struct XBeeBootSession *xbs)
 static void xbeedev_close(union filedescriptor *fdp)
 {
   struct XBeeBootSession *xbs = xbeebootsession(fdp);
-  xbeedev_xbsclose(xbs);
+  xbeedev_free(xbs);
 }
 
 static int xbeedev_open(char * const port, union pinfo pinfo,
@@ -781,14 +781,14 @@ static int xbeedev_open(char * const port, union pinfo pinfo,
       if (rc < 0) {
         avrdude_message(MSG_INFO, "%s: Local XBee is not responding.\n",
                         progname);
-        xbeedev_xbsclose(xbs);
+        xbeedev_free(xbs);
         return rc;
       }
     }
 
     const int rc = sendAT(xbs, 'D', '6', 0);
     if (rc < 0) {
-      xbeedev_xbsclose(xbs);
+      xbeedev_free(xbs);
 
       if (xbeeATError(rc))
         return -1;
@@ -980,7 +980,7 @@ static void xbee_close(PROGRAMMER *pgm)
     xbeeATError(rc);
   }
 
-  xbeedev_xbsclose(xbs);
+  xbeedev_free(xbs);
   pgm->fd.ifd = -1;
 }
 
