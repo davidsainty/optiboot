@@ -907,7 +907,10 @@ static int xbeedev_set_dtr_rts(union filedescriptor *fdp, int is_on)
     return xbs->serialDevice->set_dtr_rts(&xbs->serialDescriptor, is_on);
 
   /*
-   * For non-direct mode (Over-The-Air) need XBee commands for remote.
+   * For non-direct mode (Over-The-Air) we need to issue XBee commands
+   * to the remote XBee in order to reset the AVR CPU and initiate the
+   * XBeeBoot bootloader.
+   *
    * XBee IO port 3 is an arbitrarily chosen pin that can be connected
    * directly to the AVR reset pin.
    *
