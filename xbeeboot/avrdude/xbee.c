@@ -825,6 +825,14 @@ static int xbeedev_open(char *port, union pinfo pinfo,
     }
 
     /*
+     * At this point we want to set the remote XBee parameters as
+     * required for talking to XBeeBoot.  Ideally we would start with
+     * an "FR" full reset, but because that causes the XBee to
+     * disappear off the mesh for a significant period and become
+     * unresponsive, we don't do that.
+     */
+
+    /*
      * Disable RTS input on the remove XBee, just in case it is
      * enabled by default.  XBeeBoot doesn't attempt to support flow
      * control, and so it may not correctly drive this pin if RTS mode
@@ -1118,6 +1126,10 @@ static void xbee_close(PROGRAMMER *pgm)
    * We have tweaked a few settings on the XBee, including the RTS
    * mode and the reset pin's configuration.  Do a soft full reset,
    * restoring the device to its normal power-on settings.
+   *
+   * Note that this DOES mean that the remote XBee will be
+   * uncontactable until it has restarted and reestablished
+   * communications on the mesh.
    */
   if (!xbs->directMode) {
     const int rc = sendAT(xbs, 'F', 'R', -1);
