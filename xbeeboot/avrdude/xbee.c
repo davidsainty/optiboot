@@ -1020,24 +1020,32 @@ static int xbee_getsync(PROGRAMMER *pgm)
 
   /*
    * Issue sync request as per STK500.  Unlike stk500_getsync(), don't
-   * retry - the underlying protocol will deal with retries for us.
+   * retry here - the underlying protocol will deal with retries for
+   * us in xbeedev_send() and should be reliable.
    */
   buf[0] = Cmnd_STK_GET_SYNC;
   buf[1] = Sync_CRC_EOP;
 
   int sendRc = serial_send(&pgm->fd, buf, 2);
-  if (sendRc < 0)
+  if (sendRc < 0) {
+    avrdude_message(MSG_INFO,
+                    "%s: xbee_getsync(): failed to deliver STK_GET_SYNC "
+                    "to the remote XBeeBoot bootloader\n",
+                    progname);
     return sendRc;
+  }
 
-  {
-    int recvRc, retries;
-    for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
-      recvRc = serial_recv(&pgm->fd, resp, 2);
-      if (!recvRc)
-        break;
-    }
-    if (recvRc < 0)
-      return recvRc;
+  /*
+   * The same is true of the receive - it will retry on timeouts until
+   * the response buffer is full.
+   */
+  int recvRc = serial_recv(&pgm->fd, resp, 2);
+  if (recvRc < 0) {
+    avrdude_message(MSG_INFO,
+                    "%s: xbee_getsync(): no response to STK_GET_SYNC "
+                    "from the remote XBeeBoot bootloader\n",
+                    progname);
+    return recvRc;
   }
 
   if (resp[0] != Resp_STK_INSYNC) {
