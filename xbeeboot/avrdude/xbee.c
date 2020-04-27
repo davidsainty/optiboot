@@ -907,8 +907,14 @@ static int xbeedev_set_dtr_rts(union filedescriptor *fdp, int is_on)
     return xbs->serialDevice->set_dtr_rts(&xbs->serialDescriptor, is_on);
 
   /*
-   * For non-direct mode (Over-The-Air) need XBee commands for
-   * remote.
+   * For non-direct mode (Over-The-Air) need XBee commands for remote.
+   * XBee IO port 3 is an arbitrarily chosen pin that can be connected
+   * directly to the AVR reset pin.
+   *
+   * Some off-the-shelf Arduino shields select a different pin.  For
+   * example this one uses XBee IO port 7.
+   *
+   * https://wiki.dfrobot.com/Xbee_Shield_For_Arduino__no_Xbee___SKU_DFR0015_
    */
   const int rc = sendAT(xbs, 'D', '3', is_on ? 5 : 4);
   if (rc < 0) {
