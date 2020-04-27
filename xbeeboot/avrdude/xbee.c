@@ -1077,7 +1077,7 @@ void xbee_initpgm(PROGRAMMER *pgm)
   pgm->read_sig_bytes = xbee_read_sig_bytes;
   pgm->open = xbee_open;
   pgm->close = xbee_close;
-  
+
   /*
    * NB: Because we are making use of the STK500 programmer
    * implementation, we can't readily use pgm->cookie ourselves, nor
