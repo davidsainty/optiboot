@@ -63,6 +63,12 @@
 #define XBEE_DEFAULT_RESET_PIN 3
 
 /*
+ * After eight seconds the AVR bootloader watchdog will have already
+ * kicked in.
+ */
+#define XBEE_MAX_RETRIES 8
+
+/*
  * Read signature bytes - Direct copy of the Arduino behaviour to
  * satisfy Optiboot.
  */
@@ -119,6 +125,13 @@ struct XBeeBootSession {
   int directMode;
   unsigned char outSequence;
   unsigned char inSequence;
+  unsigned char txSequence;
+
+  /*
+   * Set to non-zero if the transport is broken to the point it is
+   * considered unusable.
+   */
+  int transportUnusable;
 
   int xbeeResetPin;
 
@@ -133,6 +146,8 @@ static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
   xbs->xbeeResetPin = XBEE_DEFAULT_RESET_PIN;
   xbs->outSequence = 0;
   xbs->inSequence = 0;
+  xbs->txSequence = 0;
+  xbs->transportUnusable = 0;
   xbs->inInIndex = 0;
   xbs->inOutIndex = 0;
 }
@@ -145,16 +160,16 @@ static void xbeedev_setresetpin(union filedescriptor *fdp, int xbeeResetPin)
   xbs->xbeeResetPin = xbeeResetPin;
 }
 
-static void sendAPIRequest(struct XBeeBootSession *xbs,
-                           unsigned char apiType,
-                           int apiOption,
-                           int prePayload1,
-                           int prePayload2,
-                           int packetType,
-                           int sequence,
-                           int appType,
-                           unsigned int dataLength,
-                           const unsigned char *data)
+static int sendAPIRequest(struct XBeeBootSession *xbs,
+                          unsigned char apiType,
+                          int apiOption,
+                          int prePayload1,
+                          int prePayload2,
+                          int packetType,
+                          int sequence,
+                          int appType,
+                          unsigned int dataLength,
+                          const unsigned char *data)
 {
   unsigned char frame[256];
 
@@ -238,18 +253,16 @@ static void sendAPIRequest(struct XBeeBootSession *xbs,
   unsigned char *frameStart = dataStart - prefixLength;
   memmove(frameStart, frame, prefixLength);
 
-  xbs->serialDevice->send(&xbs->serialDescriptor,
-                          frameStart, finalLength + prefixLength);
+  return xbs->serialDevice->send(&xbs->serialDescriptor,
+                                 frameStart, finalLength + prefixLength);
 }
 
-static unsigned char txSequence = 0;
-
-static void sendPacket(struct XBeeBootSession *xbs,
-                       unsigned char packetType,
-                       unsigned char sequence,
-                       int appType,
-                       unsigned int dataLength,
-                       const unsigned char *data)
+static int sendPacket(struct XBeeBootSession *xbs,
+                      unsigned char packetType,
+                      unsigned char sequence,
+                      int appType,
+                      unsigned int dataLength,
+                      const unsigned char *data)
 {
   unsigned char apiType;
   int prePayload1;
@@ -275,10 +288,10 @@ static void sendPacket(struct XBeeBootSession *xbs,
     prePayload2 = 0;
   }
 
-  while ((++txSequence & 0xff) == 0);
-  sendAPIRequest(xbs, apiType, txSequence,
-                 prePayload1, prePayload2, packetType,
-                 sequence, appType, dataLength, data);
+  while ((++xbs->txSequence & 0xff) == 0);
+  return sendAPIRequest(xbs, apiType, xbs->txSequence,
+                        prePayload1, prePayload2, packetType,
+                        sequence, appType, dataLength, data);
 }
 
 /*
@@ -537,8 +550,8 @@ static int localAT(struct XBeeBootSession *xbs,
      */
     return 0;
 
-  while ((++txSequence & 0xff) == 0);
-  const unsigned char sequence = txSequence;
+  while ((++xbs->txSequence & 0xff) == 0);
+  const unsigned char sequence = xbs->txSequence;
 
   unsigned char buf[3];
   size_t length = 0;
@@ -580,8 +593,8 @@ static int sendAT(struct XBeeBootSession *xbs,
      */
     return 0;
 
-  while ((++txSequence & 0xff) == 0);
-  const unsigned char sequence = txSequence;
+  while ((++xbs->txSequence & 0xff) == 0);
+  const unsigned char sequence = xbs->txSequence;
 
   unsigned char buf[3];
   size_t length = 0;
@@ -843,6 +856,10 @@ static int xbeedev_send(union filedescriptor *fdp,
 {
   struct XBeeBootSession *xbs = xbeebootsession(fdp);
 
+  if (xbs->transportUnusable)
+    /* Don't attempt to continue on an unusable transport layer */
+    return -1;
+
   while (buflen > 0) {
     unsigned char sequence = xbs->outSequence;
     while ((++sequence & 0xff) == 0);
@@ -853,25 +870,48 @@ static int xbeedev_send(union filedescriptor *fdp,
      */
     const unsigned char blockLength = (buflen > 64) ? 64 : buflen;
 
+    int pollRc = 0;
+
     /* Repeatedly send whilst timing out waiting for ACK responses. */
-    for (;;) {
-      sendPacket(xbs, 1 /* REQUEST */, sequence,
-                 23 /* FIRMWARE_DELIVER */,
-                 blockLength, buf);
-      if (!xbeedev_poll(xbs, NULL, 0, sequence, -1))
+    int retries;
+    for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
+      int sendRc = sendPacket(xbs, 1 /* REQUEST */, sequence,
+                              23 /* FIRMWARE_DELIVER */,
+                              blockLength, buf);
+      if (sendRc < 0) {
+        /* There is no way to recover from a failure mid-send */
+        xbs->transportUnusable = 1;
+        return sendRc;
+      }
+
+      pollRc = xbeedev_poll(xbs, NULL, 0, sequence, -1);
+      if (pollRc == 0) {
+        /* Send was ACK'd */
+        buflen -= blockLength;
+        buf += blockLength;
         break;
+      }
 
       /*
        * If we don't receive an ACK it might be because the chip
        * missed an ACK from us.  Resend that too after a timeout,
        * unless it's zero which is an illegal sequence number.
        */
-      if (xbs->inSequence != 0)
-        sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
+      if (xbs->inSequence != 0) {
+        int ackRc = sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
+        if (ackRc < 0) {
+          /* There is no way to recover from a failure mid-send */
+          xbs->transportUnusable = 1;
+          return ackRc;
+        }
+      }
     }
 
-    buflen -= blockLength;
-    buf += blockLength;
+    if (pollRc < 0) {
+      /* There is no way to recover from a failure mid-send */
+      xbs->transportUnusable = 1;
+      return pollRc;
+    }
   }
 
   return 0;
@@ -894,8 +934,12 @@ static int xbeedev_recv(union filedescriptor *fdp,
       return 0;
   }
 
+  if (xbs->transportUnusable)
+    /* Don't attempt to continue on an unusable transport layer */
+    return -1;
+
   int retries;
-  for (retries = 0; retries < 30; retries++) {
+  for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
     const int rc = xbeedev_poll(xbs, buf, buflen, -1, -1);
     if (!rc)
       return rc;
@@ -913,6 +957,10 @@ static int xbeedev_recv(union filedescriptor *fdp,
 static int xbeedev_drain(union filedescriptor *fdp, int display)
 {
   struct XBeeBootSession *xbs = xbeebootsession(fdp);
+
+  if (xbs->transportUnusable)
+    /* Don't attempt to continue on an unusable transport layer */
+    return -1;
 
   /*
    * Flushing the local serial buffer is unhelpful under this
@@ -965,6 +1013,49 @@ static struct serial_device xbee_serdev_frame = {
   .flags = SERDEV_FL_NONE,
 };
 
+static int xbee_getsync(PROGRAMMER *pgm)
+{
+  struct XBeeBootSession *xbs = xbeebootsession(&pgm->fd);
+  unsigned char buf[2], resp[2];
+
+  /*
+   * Issue sync request as per STK500.  Unlike stk500_getsync(), don't
+   * retry - the underlying protocol will deal with retries for us.
+   */
+  buf[0] = Cmnd_STK_GET_SYNC;
+  buf[1] = Sync_CRC_EOP;
+
+  int sendRc = serial_send(&pgm->fd, buf, 2);
+  if (sendRc < 0)
+    return sendRc;
+
+  {
+    int recvRc, retries;
+    for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
+      recvRc = serial_recv(&pgm->fd, resp, 2);
+      if (!recvRc)
+        break;
+    }
+    if (recvRc < 0)
+      return recvRc;
+  }
+
+  if (resp[0] != Resp_STK_INSYNC) {
+    avrdude_message(MSG_INFO, "%s: xbee_getsync(): not in sync: resp=0x%02x\n",
+                    progname, (unsigned int)resp[0]);
+    return -1;
+  }
+
+  if (resp[1] != Resp_STK_OK) {
+    avrdude_message(MSG_INFO, "%s: xbee_getsync(): in sync, not OK: "
+                    "resp=0x%02x\n",
+                    progname, (unsigned int)resp[1]);
+    return -1;
+  }
+
+  return 0;
+}
+
 static int xbee_open(PROGRAMMER *pgm, char *port)
 {
   union pinfo pinfo;
@@ -997,11 +1088,13 @@ static int xbee_open(PROGRAMMER *pgm, char *port)
   usleep(50*1000);
 
   /*
-   * drain any extraneous input
+   * At this point stk500_drain() and stk500_getsync() calls would
+   * normally be made.  But given that we have a transport layer over
+   * the serial command stream, the drain and repeated STK_GET_SYNC
+   * requests are not very helpful.  Instead, skip the draining
+   * entirely, and issue the STK_GET_SYNC ourselves.
    */
-  stk500_drain(pgm, 0);
-
-  if (stk500_getsync(pgm) < 0)
+  if (xbee_getsync(pgm) < 0)
     return -1;
 
   return 0;
