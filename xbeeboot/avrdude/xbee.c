@@ -63,10 +63,12 @@
 #define XBEE_DEFAULT_RESET_PIN 3
 
 /*
- * After eight seconds the AVR bootloader watchdog will have already
- * kicked in.
+ * After eight seconds the AVR bootloader watchdog will kick in.  But
+ * to allow for the possibility of eight seconds upstream and another
+ * eight seconds downstream, allow for 16 retries (of roughly one
+ * second each).
  */
-#define XBEE_MAX_RETRIES 8
+#define XBEE_MAX_RETRIES 16
 
 /*
  * Read signature bytes - Direct copy of the Arduino behaviour to
