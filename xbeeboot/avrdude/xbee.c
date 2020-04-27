@@ -251,7 +251,8 @@ static int xbeedev_poll(union filedescriptor * const fd,
 #define XBEE_CHECKSUM_LEN 1
 #define XBEE_APITYPE_LEN 1
 #define XBEE_APISEQUENCE_LEN 1
-#define XBEE_ADDRESS_LEN 10
+#define XBEE_ADDRESS_64BIT_LEN 8
+#define XBEE_ADDRESS_16BIT_LEN 2
 #define XBEE_RADIUS_LEN 1
 #define XBEE_TXOPTIONS_LEN 1
 #define XBEE_RXOPTIONS_LEN 1
@@ -330,7 +331,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
       fprintf(stderr, "%s: xbeedev_poll(): Received frame type %x\n",
               progname, (unsigned int)frameType);
 
-    if (frameType == 0x97) {
+    if (frameType == 0x97 && frameSize > 16) {
       /* Remote command response */
       unsigned char resultCode = frame[16];
       if (verbose >= 1)
@@ -341,7 +342,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
       if (waitForSequence >= 0 && waitForSequence == frame[3])
         /* Received result for our sequence numbered request */
         return -512 + resultCode;
-    } else if (frameType == 0x88) {
+    } else if (frameType == 0x88 && frameSize > 6) {
       /* Local command response */
       if (verbose >= 1)
         fprintf(stderr,
@@ -351,7 +352,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
       if (waitForSequence >= 0 && waitForSequence == frame[3])
         /* Received result for our sequence numbered request */
         return 0;
-    } else if (frameType == 0x8b) {
+    } else if (frameType == 0x8b && frameSize > 7) {
       /* Transmit status */
       if (verbose >= 2)
         fprintf(stderr,
@@ -365,19 +366,30 @@ static int xbeedev_poll(union filedescriptor * const fd,
         /* Direct mode frame */
         const unsigned int header = XBEE_LENGTH_LEN +
           XBEE_APITYPE_LEN + XBEE_APISEQUENCE_LEN +
-          XBEE_ADDRESS_LEN + XBEE_RADIUS_LEN + XBEE_TXOPTIONS_LEN;
+          XBEE_ADDRESS_64BIT_LEN + XBEE_ADDRESS_16BIT_LEN +
+          XBEE_RADIUS_LEN + XBEE_TXOPTIONS_LEN;
+
+        if (frameSize <= header + XBEE_CHECKSUM_LEN)
+          /* Bounds check: Frame is too small */
+          continue;
+
         dataLength = frameSize - header - XBEE_CHECKSUM_LEN;
         dataStart = &frame[header];
       } else {
         /* Remote reply frame */
         const unsigned int header = XBEE_LENGTH_LEN +
-          XBEE_APITYPE_LEN + XBEE_ADDRESS_LEN +
+          XBEE_APITYPE_LEN + XBEE_ADDRESS_64BIT_LEN + XBEE_ADDRESS_16BIT_LEN +
           XBEE_RXOPTIONS_LEN;
+
+        if (frameSize <= header + XBEE_CHECKSUM_LEN)
+          /* Bounds check: Frame is too small */
+          continue;
+
         dataLength = frameSize - header - XBEE_CHECKSUM_LEN;
         dataStart = &frame[header];
 
         if (memcmp(&frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN],
-                   xbee_address, 8) != 0) {
+                   xbee_address, XBEE_ADDRESS_64BIT_LEN) != 0) {
           /*
            * This packet is not from our target device.  Unlikely
            * to ever happen, but if it does we have to ignore
@@ -393,15 +405,17 @@ static int xbeedev_poll(union filedescriptor * const fd,
          */
         {
           const unsigned char * const rx16Bit =
-            &frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN + 8];
-          unsigned char * const tx16Bit = &xbee_address[8];
-          if (memcmp(rx16Bit, tx16Bit, 2) != 0) {
+            &frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
+                   XBEE_ADDRESS_64BIT_LEN];
+          unsigned char * const tx16Bit =
+            &xbee_address[XBEE_ADDRESS_64BIT_LEN];
+          if (memcmp(rx16Bit, tx16Bit, XBEE_ADDRESS_16BIT_LEN) != 0) {
             if (verbose >= 2)
               fprintf(stderr,
                       "%s: xbeedev_poll(): New 16-bit address: %02x%02x\n",
                       progname,
                       (unsigned int)rx16Bit[0], (unsigned int)rx16Bit[1]);
-            memcpy(tx16Bit, rx16Bit, 2);
+            memcpy(tx16Bit, rx16Bit, XBEE_ADDRESS_16BIT_LEN);
           }
         }
       }
@@ -427,8 +441,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
            */
           if (waitForAck >= 0 && waitForAck == sequence)
             return 0;
-        } else if (buf != NULL &&
-                   protocolType == 1 && dataLength >= 4 &&
+        } else if (protocolType == 1 && dataLength >= 4 &&
                    dataStart[2] == 24) {
           /* REQUEST FRAME_REPLY */
           unsigned char nextSequence = inSequence;
@@ -441,6 +454,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
             for (index = 0; index < textLength; index++) {
               const unsigned char data = dataStart[3 + index];
               if (buflen > 0) {
+                /* If we are receiving right now, and have a buffer... */
                 *buf++ = data;
                 buflen--;
               } else {
@@ -458,7 +472,8 @@ static int xbeedev_poll(union filedescriptor * const fd,
             /*fprintf(stderr, "ACK %x\n", (unsigned int)sequence);*/
             sendPacket(fd, 0 /* ACK */, sequence, -1, 0, NULL);
 
-            if (buflen == 0)
+            if (buflen == 0 && buf != NULL)
+              /* Input buffer has been filled */
               return 0;
           }
         }
@@ -751,7 +766,7 @@ static void xbeedev_close(union filedescriptor *fd)
 }
 
 static int xbeedev_send(union filedescriptor * const fd,
-                        unsigned char *buf, size_t buflen)
+                        const unsigned char *buf, size_t buflen)
 {
   while (buflen > 0) {
     unsigned char sequence = outSequence;
