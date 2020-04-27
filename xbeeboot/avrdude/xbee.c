@@ -55,7 +55,8 @@ static int xbee_read_sig_bytes(PROGRAMMER * const pgm, AVRPART * const p,
   /* Signature byte reads are always 3 bytes. */
 
   if (m->size < 3) {
-    fprintf(stderr, "%s: memsize too small for sig byte read", progname);
+    avrdude_message(MSG_INFO, "%s: memsize too small for sig byte read",
+                    progname);
     return -1;
   }
 
@@ -67,21 +68,21 @@ static int xbee_read_sig_bytes(PROGRAMMER * const pgm, AVRPART * const p,
   if (serial_recv(&pgm->fd, buf, 5) < 0)
     return -1;
   if (buf[0] == Resp_STK_NOSYNC) {
-    fprintf(stderr, "%s: stk500_cmd(): programmer is out of sync\n",
-            progname);
+    avrdude_message(MSG_INFO, "%s: stk500_cmd(): programmer is out of sync\n",
+                    progname);
     return -1;
   } else if (buf[0] != Resp_STK_INSYNC) {
-    fprintf(stderr,
-            "\n%s: xbee_read_sig_bytes(): (a) protocol error, "
-            "expect=0x%02x, resp=0x%02x\n",
-            progname, Resp_STK_INSYNC, buf[0]);
+    avrdude_message(MSG_INFO,
+                    "\n%s: xbee_read_sig_bytes(): (a) protocol error, "
+                    "expect=0x%02x, resp=0x%02x\n",
+                    progname, Resp_STK_INSYNC, buf[0]);
     return -2;
   }
   if (buf[4] != Resp_STK_OK) {
-    fprintf(stderr,
-            "\n%s: xbee_read_sig_bytes(): (a) protocol error, "
-            "expect=0x%02x, resp=0x%02x\n",
-            progname, Resp_STK_OK, buf[4]);
+    avrdude_message(MSG_INFO,
+                    "\n%s: xbee_read_sig_bytes(): (a) protocol error, "
+                    "expect=0x%02x, resp=0x%02x\n",
+                    progname, Resp_STK_OK, buf[4]);
     return -3;
   }
 
@@ -92,18 +93,32 @@ static int xbee_read_sig_bytes(PROGRAMMER * const pgm, AVRPART * const p,
   return 3;
 }
 
-static const struct serial_device *wrapper = &serial_serdev;
+struct XBeeBootSession {
+  struct serial_device *serialDevice;
+  union filedescriptor serialDescriptor;
 
-static unsigned char xbee_address[10];
-static int directMode = 1;
-static unsigned char outSequence = 0;
-static unsigned char inSequence = 0;
+  unsigned char xbee_address[10];
+  int directMode;
+  unsigned char outSequence;
+  unsigned char inSequence;
 
-static size_t inInIndex = 0;
-static size_t inOutIndex = 0;
-static unsigned char inBuffer[256];
+  size_t inInIndex;
+  size_t inOutIndex;
+  unsigned char inBuffer[256];
+};
 
-static void sendAPIRequest(union filedescriptor * const fd,
+static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
+  xbs->serialDevice = &serial_serdev;
+  xbs->directMode = 1;
+  xbs->outSequence = 0;
+  xbs->inSequence = 0;
+  xbs->inInIndex = 0;
+  xbs->inOutIndex = 0;
+}
+
+#define xbeebootsession(fdp) (struct XBeeBootSession*)((fdp)->pfd)
+
+static void sendAPIRequest(struct XBeeBootSession *xbs,
                            const unsigned char apiType,
                            const int apiOption,
                            const int prePayload1,
@@ -121,13 +136,15 @@ static void sendAPIRequest(union filedescriptor * const fd,
   unsigned char checksum = 0xff;
   unsigned char length = 0;
 
-  if (verbose >= 2) {
+  if (verbose >= MSG_NOTICE2) {
     struct timeval time;
     gettimeofday(&time, NULL);
-    fprintf(stderr, "%s: sendAPIRequest(): %lu.%06lu %d, %d, %d, %d\n",
-            progname, (unsigned long)time.tv_sec, (unsigned long)time.tv_usec,
-            (int)packetType, (int)sequence, appType,
-            data == NULL ? -1 : (int)*data);
+    avrdude_message(MSG_NOTICE2,
+                    "%s: sendAPIRequest(): %lu.%06lu %d, %d, %d, %d\n",
+                    progname, (unsigned long)time.tv_sec,
+                    (unsigned long)time.tv_usec,
+                    (int)packetType, (int)sequence, appType,
+                    data == NULL ? -1 : (int)*data);
   }
 
 #define fpput(x)                                                \
@@ -152,7 +169,7 @@ static void sendAPIRequest(union filedescriptor * const fd,
     /* Automatically inhibit addressing for local AT command requests. */
     size_t index;
     for (index = 0; index < 10; index++) {
-      const unsigned char val = xbee_address[index];
+      const unsigned char val = xbs->xbee_address[index];
       fpput(val);
     }
   }
@@ -194,12 +211,13 @@ static void sendAPIRequest(union filedescriptor * const fd,
   unsigned char *frameStart = dataStart - prefixLength;
   memmove(frameStart, frame, prefixLength);
 
-  wrapper->send(fd, frameStart, finalLength + prefixLength);
+  xbs->serialDevice->send(&xbs->serialDescriptor,
+                          frameStart, finalLength + prefixLength);
 }
 
 static unsigned char txSequence = 0;
 
-static void sendPacket(union filedescriptor * const fd,
+static void sendPacket(struct XBeeBootSession *xbs,
                        const unsigned char packetType,
                        const unsigned char sequence,
                        const int appType,
@@ -210,7 +228,7 @@ static void sendPacket(union filedescriptor * const fd,
   int prePayload1;
   int prePayload2;
 
-  if (directMode) {
+  if (xbs->directMode) {
     /*
      * In direct mode we are pretending to be an XBee device
      * forwarding on data received from the transmitting XBee.  We
@@ -231,7 +249,7 @@ static void sendPacket(union filedescriptor * const fd,
   }
 
   while ((++txSequence & 0xff) == 0);
-  sendAPIRequest(fd, apiType, txSequence,
+  sendAPIRequest(xbs, apiType, txSequence,
                  prePayload1, prePayload2, packetType,
                  sequence, appType, dataLength, data);
 }
@@ -242,7 +260,7 @@ static void sendPacket(union filedescriptor * const fd,
  * Return -512 + XBee AT Response code
  */
 #define XBEE_AT_RETURN_CODE(x) (((x) >= -512 && (x) <= -256) ? (x) + 512 : -1)
-static int xbeedev_poll(union filedescriptor * const fd,
+static int xbeedev_poll(struct XBeeBootSession *xbs,
                         unsigned char *buf, size_t buflen,
                         const int waitForAck,
                         const int waitForSequence)
@@ -263,7 +281,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
 
   before_frame:
     do {
-      const int rc = wrapper->recv(fd, &byte, 1);
+      const int rc = xbs->serialDevice->recv(&xbs->serialDescriptor, &byte, 1);
       if (rc < 0)
         return rc;
     } while (byte != 0x7e);
@@ -274,7 +292,8 @@ static int xbeedev_poll(union filedescriptor * const fd,
       int escaped = 0;
       frameSize = XBEE_LENGTH_LEN;
       do {
-        const int rc = wrapper->recv(fd, &byte, 1);
+        const int rc = xbs->serialDevice->recv(&xbs->serialDescriptor,
+                                               &byte, 1);
         if (rc < 0)
           return rc;
 
@@ -318,46 +337,44 @@ static int xbeedev_poll(union filedescriptor * const fd,
 
       if (checksum) {
         /* Checksum didn't match */
-        if (verbose >= 2)
-          fprintf(stderr, "%s: xbeedev_poll(): Bad checksum %d\n",
-                  progname, (int)checksum);
+        avrdude_message(MSG_NOTICE2,
+                        "%s: xbeedev_poll(): Bad checksum %d\n",
+                        progname, (int)checksum);
         continue;
       }
     }
 
     const unsigned char frameType = frame[2];
 
-    if (verbose >= 2)
-      fprintf(stderr, "%s: xbeedev_poll(): Received frame type %x\n",
-              progname, (unsigned int)frameType);
+    avrdude_message(MSG_NOTICE2,
+                    "%s: xbeedev_poll(): Received frame type %x\n",
+                    progname, (unsigned int)frameType);
 
     if (frameType == 0x97 && frameSize > 16) {
       /* Remote command response */
       unsigned char resultCode = frame[16];
-      if (verbose >= 1)
-        fprintf(stderr,
-                "%s: xbeedev_poll(): Remote command %d result code %d\n",
-                progname, (int)frame[3], (int)resultCode);
+
+      avrdude_message(MSG_NOTICE,
+                      "%s: xbeedev_poll(): Remote command %d result code %d\n",
+                      progname, (int)frame[3], (int)resultCode);
 
       if (waitForSequence >= 0 && waitForSequence == frame[3])
         /* Received result for our sequence numbered request */
         return -512 + resultCode;
     } else if (frameType == 0x88 && frameSize > 6) {
       /* Local command response */
-      if (verbose >= 1)
-        fprintf(stderr,
-                "%s: xbeedev_poll(): Local command %c%c result code %d\n",
-                progname, frame[4], frame[5], (int)frame[6]);
+      avrdude_message(MSG_NOTICE,
+                      "%s: xbeedev_poll(): Local command %c%c result code %d\n",
+                      progname, frame[4], frame[5], (int)frame[6]);
 
       if (waitForSequence >= 0 && waitForSequence == frame[3])
         /* Received result for our sequence numbered request */
         return 0;
     } else if (frameType == 0x8b && frameSize > 7) {
       /* Transmit status */
-      if (verbose >= 2)
-        fprintf(stderr,
-                "%s: xbeedev_poll(): Transmit status %d result code %d\n",
-                progname, (int)frame[3], (int)frame[7]);
+      avrdude_message(MSG_NOTICE2,
+                      "%s: xbeedev_poll(): Transmit status %d result code %d\n",
+                      progname, (int)frame[3], (int)frame[7]);
     } else if (frameType == 0x10 || frameType == 0x90) {
       unsigned char *dataStart;
       unsigned int dataLength;
@@ -389,7 +406,7 @@ static int xbeedev_poll(union filedescriptor * const fd,
         dataStart = &frame[header];
 
         if (memcmp(&frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN],
-                   xbee_address, XBEE_ADDRESS_64BIT_LEN) != 0) {
+                   xbs->xbee_address, XBEE_ADDRESS_64BIT_LEN) != 0) {
           /*
            * This packet is not from our target device.  Unlikely
            * to ever happen, but if it does we have to ignore
@@ -408,13 +425,13 @@ static int xbeedev_poll(union filedescriptor * const fd,
             &frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
                    XBEE_ADDRESS_64BIT_LEN];
           unsigned char * const tx16Bit =
-            &xbee_address[XBEE_ADDRESS_64BIT_LEN];
+            &xbs->xbee_address[XBEE_ADDRESS_64BIT_LEN];
           if (memcmp(rx16Bit, tx16Bit, XBEE_ADDRESS_16BIT_LEN) != 0) {
-            if (verbose >= 2)
-              fprintf(stderr,
-                      "%s: xbeedev_poll(): New 16-bit address: %02x%02x\n",
-                      progname,
-                      (unsigned int)rx16Bit[0], (unsigned int)rx16Bit[1]);
+            avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                            "New 16-bit address: %02x%02x\n",
+                            progname,
+                            (unsigned int)rx16Bit[0],
+                            (unsigned int)rx16Bit[1]);
             memcpy(tx16Bit, rx16Bit, XBEE_ADDRESS_16BIT_LEN);
           }
         }
@@ -424,13 +441,14 @@ static int xbeedev_poll(union filedescriptor * const fd,
         const unsigned char protocolType = dataStart[0];
         const unsigned char sequence = dataStart[1];
 
-        if (verbose >= 2) {
+        if (verbose >= MSG_NOTICE2) {
           struct timeval time;
           gettimeofday(&time, NULL);
-          fprintf(stderr, "%s: xbeedev_poll(): %lu.%06lu Packet %d #%d\n",
-                  progname, (unsigned long)time.tv_sec,
-                  (unsigned long)time.tv_usec,
-                  (int)protocolType, (int)sequence);
+          avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                          "%lu.%06lu Packet %d #%d\n",
+                          progname, (unsigned long)time.tv_sec,
+                          (unsigned long)time.tv_usec,
+                          (int)protocolType, (int)sequence);
         }
 
         if (protocolType == 0) {
@@ -444,10 +462,10 @@ static int xbeedev_poll(union filedescriptor * const fd,
         } else if (protocolType == 1 && dataLength >= 4 &&
                    dataStart[2] == 24) {
           /* REQUEST FRAME_REPLY */
-          unsigned char nextSequence = inSequence;
+          unsigned char nextSequence = xbs->inSequence;
           while ((++nextSequence & 0xff) == 0);
           if (sequence == nextSequence) {
-            inSequence = nextSequence;
+            xbs->inSequence = nextSequence;
 
             const size_t textLength = dataLength - 3;
             size_t index;
@@ -458,19 +476,19 @@ static int xbeedev_poll(union filedescriptor * const fd,
                 *buf++ = data;
                 buflen--;
               } else {
-                inBuffer[inInIndex++] = data;
-                if (inInIndex == sizeof(inBuffer))
-                  inInIndex = 0;
-                if (inInIndex == inOutIndex) {
+                xbs->inBuffer[xbs->inInIndex++] = data;
+                if (xbs->inInIndex == sizeof(xbs->inBuffer))
+                  xbs->inInIndex = 0;
+                if (xbs->inInIndex == xbs->inOutIndex) {
                   /* Should be impossible */
-                  fprintf(stderr, "%s: Buffer overrun", progname);
+                  avrdude_message(MSG_INFO, "%s: Buffer overrun", progname);
                   exit(1);
                 }
               }
             }
 
-            /*fprintf(stderr, "ACK %x\n", (unsigned int)sequence);*/
-            sendPacket(fd, 0 /* ACK */, sequence, -1, 0, NULL);
+            /*avrdude_message(MSG_INFO, "ACK %x\n", (unsigned int)sequence);*/
+            sendPacket(xbs, 0 /* ACK */, sequence, -1, 0, NULL);
 
             if (buflen == 0 && buf != NULL)
               /* Input buffer has been filled */
@@ -482,11 +500,11 @@ static int xbeedev_poll(union filedescriptor * const fd,
   }
 }
 
-static int localAT(union filedescriptor * const fd,
+static int localAT(struct XBeeBootSession *xbs,
                    const unsigned char at1, const unsigned char at2,
                    const int value)
 {
-  if (directMode)
+  if (xbs->directMode)
     /*
      * Remote XBee AT commands make no sense in direct mode - there is
      * no XBee device to communicate with.
@@ -505,16 +523,15 @@ static int localAT(union filedescriptor * const fd,
   if (value >= 0)
     buf[length++] = (unsigned char)value;
 
-  if (verbose >= 1) {
-    fprintf(stderr, "%s: Local AT command: %c%c\n", progname, at1, at2);
-  }
+  avrdude_message(MSG_NOTICE, "%s: Local AT command: %c%c\n",
+                  progname, at1, at2);
 
   /* Local AT command 0x08 */
-  sendAPIRequest(fd, 0x08, -1, -1, -1, -1, sequence, -1, length, buf);
+  sendAPIRequest(xbs, 0x08, -1, -1, -1, -1, sequence, -1, length, buf);
 
   int retries;
   for (retries = 0; retries < 5; retries++) {
-    const int rc = xbeedev_poll(fd, NULL, 0, -1, sequence);
+    const int rc = xbeedev_poll(xbs, NULL, 0, -1, sequence);
     if (!rc)
       return rc;
   }
@@ -527,11 +544,11 @@ static int localAT(union filedescriptor * const fd,
  * Return -1 on generic error (normally serial timeout).
  * Return -512 + XBee AT Response code
  */
-static int sendAT(union filedescriptor * const fd,
+static int sendAT(struct XBeeBootSession *xbs,
                   const unsigned char at1, const unsigned char at2,
                   const int value)
 {
-  if (directMode)
+  if (xbs->directMode)
     /*
      * Remote XBee AT commands make no sense in direct mode - there is
      * no XBee device to communicate with.
@@ -550,19 +567,17 @@ static int sendAT(union filedescriptor * const fd,
   if (value >= 0)
     buf[length++] = (unsigned char)value;
 
-  if (verbose >= 1) {
-    fprintf(stderr, "%s: Remote AT command: %c%c\n", progname, at1, at2);
-  }
+  avrdude_message(MSG_NOTICE,
+                  "%s: Remote AT command: %c%c\n", progname, at1, at2);
 
   /* Remote AT command 0x17 with Apply Changes 0x02 */
-  sendAPIRequest(fd, 0x17, sequence,
+  sendAPIRequest(xbs, 0x17, sequence,
                  -1, -1, -1,
                  0x02, -1, length, buf);
 
-
   int retries;
   for (retries = 0; retries < 30; retries++) {
-    const int rc = xbeedev_poll(fd, NULL, 0, -1, sequence);
+    const int rc = xbeedev_poll(xbs, NULL, 0, -1, sequence);
     const int xbeeRc = XBEE_AT_RETURN_CODE(rc);
     if (xbeeRc == 0)
       /* Translate to normal success code */
@@ -584,29 +599,41 @@ static int xbeeATError(const int rc) {
     return 0;
 
   if (xbeeRc == 1) {
-    fprintf(stderr, "%s: Error communicating with Remote XBee\n",
-            progname);
+    avrdude_message(MSG_INFO, "%s: Error communicating with Remote XBee\n",
+                    progname);
   } else if (xbeeRc == 2) {
-    fprintf(stderr, "%s: Remote XBee command error: "
-            "Invalid command\n",
-            progname);
+    avrdude_message(MSG_INFO, "%s: Remote XBee command error: "
+                    "Invalid command\n",
+                    progname);
   } else if (xbeeRc == 3) {
-    fprintf(stderr, "%s: Remote XBee command error: "
-            "Invalid parameter\n",
-            progname);
+    avrdude_message(MSG_INFO, "%s: Remote XBee command error: "
+                    "Invalid parameter\n",
+                    progname);
   } else if (xbeeRc == 4) {
-    fprintf(stderr, "%s: Remote XBee error: "
-            "Transmission failure\n",
-            progname);
+    avrdude_message(MSG_INFO, "%s: Remote XBee error: "
+                    "Transmission failure\n",
+                    progname);
   } else {
-    fprintf(stderr, "%s: Unrecognised remote XBee error code %d\n",
-            progname, xbeeRc);
+    avrdude_message(MSG_INFO, "%s: Unrecognised remote XBee error code %d\n",
+                    progname, xbeeRc);
   }
   return 1;
 }
 
+static void xbeedev_xbsclose(struct XBeeBootSession *xbs)
+{
+  xbs->serialDevice->close(&xbs->serialDescriptor);
+  free(xbs);
+}
+
+static void xbeedev_close(union filedescriptor *fdp)
+{
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+  xbeedev_xbsclose(xbs);
+}
+
 static int xbeedev_open(char * const port, union pinfo pinfo,
-                        union filedescriptor * const fd)
+                        union filedescriptor *fdp)
 {
   /*
    * The syntax for XBee devices is defined as:
@@ -621,19 +648,28 @@ static int xbeedev_open(char * const port, union pinfo pinfo,
    */
   char *ttySeparator = strchr(port, '@');
   if (ttySeparator == NULL) {
-    fprintf(stderr,
-            "%s: XBee: Bad port syntax: "
-            "require \"<xbee-address>@<serial-device>\"\n",
-	    progname);
+    avrdude_message(MSG_INFO,
+                    "%s: XBee: Bad port syntax: "
+                    "require \"<xbee-address>@<serial-device>\"\n",
+                    progname);
     return -1;
   }
+
+  struct XBeeBootSession *xbs = malloc(sizeof(struct XBeeBootSession));
+  if (xbs == NULL) {
+    avrdude_message(MSG_INFO, "%s: xbeedev_open(): out of memory\n",
+                    progname);
+    return -1;
+  }
+
+  XBeeBootSessionInit(xbs);
 
   char *tty = &ttySeparator[1];
 
   if (ttySeparator == port) {
     /* Direct connection */
-    memset(xbee_address, 0, 8);
-    directMode = 1;
+    memset(xbs->xbee_address, 0, 8);
+    xbs->directMode = 1;
   } else {
     size_t addrIndex = 0;
     int nybble = -1;
@@ -653,7 +689,7 @@ static int xbeedev_open(char * const port, union pinfo pinfo,
       if (nybble == -1) {
         nybble = val;
       } else {
-        xbee_address[addrIndex++] = (nybble * 16) | val;
+        xbs->xbee_address[addrIndex++] = (nybble * 16) | val;
         nybble = -1;
         if (addrIndex == 8)
           break;
@@ -661,39 +697,38 @@ static int xbeedev_open(char * const port, union pinfo pinfo,
     }
 
     if (addrIndex != 8 || address != ttySeparator || nybble != -1) {
-      fprintf(stderr,
-              "%s: XBee: Bad XBee address: "
-              "require 16-character hexadecimal address\"\n",
-              progname);
+      avrdude_message(MSG_INFO,
+                      "%s: XBee: Bad XBee address: "
+                      "require 16-character hexadecimal address\"\n",
+                      progname);
+      free(xbs);
       return -1;
     }
 
-    directMode = 0;
+    xbs->directMode = 0;
   }
 
   /* Unknown 16 bit address */
-  xbee_address[8] = 0xff;
-  xbee_address[9] = 0xfe;
+  xbs->xbee_address[8] = 0xff;
+  xbs->xbee_address[9] = 0xfe;
 
-  if (verbose >= 4) {
-    fprintf(stderr,
-            "%s: XBee address: %02x%02x%02x%02x%02x%02x%02x%02x\n",
-            progname,
-            (unsigned int)xbee_address[0],
-            (unsigned int)xbee_address[1],
-            (unsigned int)xbee_address[2],
-            (unsigned int)xbee_address[3],
-            (unsigned int)xbee_address[4],
-            (unsigned int)xbee_address[5],
-            (unsigned int)xbee_address[6],
-            (unsigned int)xbee_address[7]);
-  }
+  avrdude_message(MSG_TRACE,
+                  "%s: XBee address: %02x%02x%02x%02x%02x%02x%02x%02x\n",
+                  progname,
+                  (unsigned int)xbs->xbee_address[0],
+                  (unsigned int)xbs->xbee_address[1],
+                  (unsigned int)xbs->xbee_address[2],
+                  (unsigned int)xbs->xbee_address[3],
+                  (unsigned int)xbs->xbee_address[4],
+                  (unsigned int)xbs->xbee_address[5],
+                  (unsigned int)xbs->xbee_address[6],
+                  (unsigned int)xbs->xbee_address[7]);
 
   if (pinfo.baud) {
     /*
      * User supplied the correct baud rate.
      */
-  } else if (directMode) {
+  } else if (xbs->directMode) {
     /*
      * In direct mode, default to 19200.
      *
@@ -728,50 +763,56 @@ static int xbeedev_open(char * const port, union pinfo pinfo,
     pinfo.baud = 9600;
   }
 
-  if (verbose >= 1)
-    fprintf(stderr, "%s: Baud %ld\n", progname, (long)pinfo.baud);
+  avrdude_message(MSG_NOTICE, "%s: Baud %ld\n", progname, (long)pinfo.baud);
 
   {
-    const int rc = wrapper->open(tty, pinfo, fd);
-    if (rc < 0)
+    const int rc = xbs->serialDevice->open(tty, pinfo,
+                                           &xbs->serialDescriptor);
+    if (rc < 0) {
+      free(xbs);
       return rc;
+    }
   }
 
   /* Disable RTS */
-  if (!directMode) {
+  if (!xbs->directMode) {
     {
-      const int rc = localAT(fd, 'A', 'P', 2);
+      const int rc = localAT(xbs, 'A', 'P', 2);
       if (rc < 0) {
-        fprintf(stderr, "%s: Local XBee is not responding.\n", progname);
+        avrdude_message(MSG_INFO, "%s: Local XBee is not responding.\n",
+                        progname);
+        xbeedev_xbsclose(xbs);
         return rc;
       }
     }
 
-    const int rc = sendAT(fd, 'D', '6', 0);
+    const int rc = sendAT(xbs, 'D', '6', 0);
     if (rc < 0) {
+      xbeedev_xbsclose(xbs);
+
       if (xbeeATError(rc))
         return -1;
 
-      fprintf(stderr, "%s: Remote XBee is not responding.\n", progname);
+      avrdude_message(MSG_INFO, "%s: Remote XBee is not responding.\n",
+                      progname);
       return rc;
     }
   }
 
+  fdp->pfd = xbs;
+
   return 0;
 }
 
-static void xbeedev_close(union filedescriptor *fd)
-{
-  wrapper->close(fd);
-}
-
-static int xbeedev_send(union filedescriptor * const fd,
+static int xbeedev_send(union filedescriptor *fdp,
                         const unsigned char *buf, size_t buflen)
 {
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+
   while (buflen > 0) {
-    unsigned char sequence = outSequence;
+    unsigned char sequence = xbs->outSequence;
     while ((++sequence & 0xff) == 0);
-    outSequence = sequence;
+    xbs->outSequence = sequence;
 
     /*
      * Chunk the data into chunks of up to 64 bytes.
@@ -780,10 +821,10 @@ static int xbeedev_send(union filedescriptor * const fd,
 
     /* Repeatedly send whilst timing out waiting for ACK responses. */
     for (;;) {
-      sendPacket(fd, 1 /* REQUEST */, sequence,
+      sendPacket(xbs, 1 /* REQUEST */, sequence,
                  23 /* FIRMWARE_DELIVER */,
                  blockLength, buf);
-      if (!xbeedev_poll(fd, NULL, 0, sequence, -1))
+      if (!xbeedev_poll(xbs, NULL, 0, sequence, -1))
         break;
 
       /*
@@ -791,8 +832,8 @@ static int xbeedev_send(union filedescriptor * const fd,
        * missed an ACK from us.  Resend that too after a timeout,
        * unless it's zero which is an illegal sequence number.
        */
-      if (inSequence != 0)
-        sendPacket(fd, 0 /* ACK */, inSequence, -1, 0, NULL);
+      if (xbs->inSequence != 0)
+        sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
     }
 
     buflen -= blockLength;
@@ -802,24 +843,26 @@ static int xbeedev_send(union filedescriptor * const fd,
   return 0;
 }
 
-static int xbeedev_recv(union filedescriptor * const fd,
+static int xbeedev_recv(union filedescriptor *fdp,
                         unsigned char *buf, size_t buflen)
 {
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+
   /*
    * First de-buffer anything previously received in a chunk that
    * couldn't be immediately delievered.
    */
-  while (inInIndex != inOutIndex) {
-    *buf++ = inBuffer[inOutIndex++];
-    if (inOutIndex == sizeof(inBuffer))
-      inOutIndex = 0;
+  while (xbs->inInIndex != xbs->inOutIndex) {
+    *buf++ = xbs->inBuffer[xbs->inOutIndex++];
+    if (xbs->inOutIndex == sizeof(xbs->inBuffer))
+      xbs->inOutIndex = 0;
     if (--buflen == 0)
       return 0;
   }
 
   int retries;
   for (retries = 0; retries < 30; retries++) {
-    const int rc = xbeedev_poll(fd, buf, buflen, -1, -1);
+    const int rc = xbeedev_poll(xbs, buf, buflen, -1, -1);
     if (!rc)
       return rc;
 
@@ -827,42 +870,47 @@ static int xbeedev_recv(union filedescriptor * const fd,
      * The chip may have missed an ACK from us.  Resend after a
      * timeout.
      */
-    if (inSequence != 0)
-      sendPacket(fd, 0 /* ACK */, inSequence, -1, 0, NULL);
+    if (xbs->inSequence != 0)
+      sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
   }
   return -1;
 }
 
-static int xbeedev_drain(union filedescriptor * const fd, const int display)
+static int xbeedev_drain(union filedescriptor *fdp, const int display)
 {
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+
   /*
    * Flushing the local serial buffer is unhelpful under this
    * protocol.
    */
   unsigned char flush;
   do {
-    inOutIndex = inInIndex = 0;
-  } while (xbeedev_poll(fd, &flush, 1, -1, -1) == 0);
+    xbs->inOutIndex = xbs->inInIndex = 0;
+  } while (xbeedev_poll(xbs, &flush, 1, -1, -1) == 0);
 
   return 0;
 }
 
-static int xbeedev_set_dtr_rts(union filedescriptor *fd, int is_on)
+static int xbeedev_set_dtr_rts(union filedescriptor *fdp, int is_on)
 {
-  if (directMode)
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+
+  if (xbs->directMode)
     /* Correct for direct mode */
-    return wrapper->set_dtr_rts(fd, is_on);
+    return xbs->serialDevice->set_dtr_rts(&xbs->serialDescriptor, is_on);
 
   /*
    * For non-direct mode (Over-The-Air) need XBee commands for
    * remote.
    */
-  const int rc = sendAT(fd, 'D', '3', is_on ? 5 : 4);
+  const int rc = sendAT(xbs, 'D', '3', is_on ? 5 : 4);
   if (rc < 0) {
     if (xbeeATError(rc))
       return -1;
 
-    fprintf(stderr, "%s: Remote XBee is not responding.\n", progname);
+    avrdude_message(MSG_INFO,
+                    "%s: Remote XBee is not responding.\n", progname);
     return rc;
   }
 
@@ -916,21 +964,23 @@ static int xbee_open(PROGRAMMER * const pgm, char * const port)
   return 0;
 }
 
-static void xbee_close(PROGRAMMER * const pgm)
+static void xbee_close(PROGRAMMER *pgm)
 {
-  serial_set_dtr_rts(&pgm->fd, 0);
+  struct XBeeBootSession *xbs = xbeebootsession(&pgm->fd);
+
+  xbs->serialDevice->set_dtr_rts(&xbs->serialDescriptor, 0);
 
   /*
    * We have tweaked a few settings on the XBee, including the RTS
    * mode and the reset pin's configuration.  Do a soft full reset,
    * restoring the device to its normal power-on settings.
    */
-  if (!directMode) {
-    const int rc = sendAT(&pgm->fd, 'F', 'R', -1);
+  if (!xbs->directMode) {
+    const int rc = sendAT(xbs, 'F', 'R', -1);
     xbeeATError(rc);
   }
 
-  serial_close(&pgm->fd);
+  xbeedev_xbsclose(xbs);
   pgm->fd.ifd = -1;
 }
 
