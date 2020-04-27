@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14107 2020-04-27 05:09:01Z dave $ */
+/* $Id: xbee.c 14111 2020-04-27 11:36:08Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -30,12 +30,12 @@
 
 #include "ac_cfg.h"
 
-#include <sys/time.h>
+#include <sys/time.h> /* gettimeofday() */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <stdio.h> /* sscanf() */
+#include <stdlib.h> /* malloc() */
+#include <string.h> /* memmove() etc. */
+#include <unistd.h> /* usleep() */
 
 #include "avrdude.h"
 #include "libavrdude.h"
@@ -524,7 +524,8 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
                 if (xbs->inInIndex == xbs->inOutIndex) {
                   /* Should be impossible */
                   avrdude_message(MSG_INFO, "%s: Buffer overrun", progname);
-                  exit(1);
+                  xbs->transportUnusable = 1;
+                  return -1;
                 }
               }
             }
@@ -954,6 +955,10 @@ static int xbeedev_recv(union filedescriptor *fdp,
     if (rc == 0)
       return rc;
 
+    if (xbs->transportUnusable)
+      /* Don't attempt to continue on an unusable transport layer */
+      return -1;
+
     /*
      * The chip may have missed an ACK from us.  Resend after a
      * timeout.
@@ -1024,7 +1029,6 @@ static struct serial_device xbee_serdev_frame = {
 
 static int xbee_getsync(PROGRAMMER *pgm)
 {
-  struct XBeeBootSession *xbs = xbeebootsession(&pgm->fd);
   unsigned char buf[2], resp[2];
 
   /*
