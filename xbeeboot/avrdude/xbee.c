@@ -1089,8 +1089,10 @@ static int xbee_parseextparms(PROGRAMMER *pgm, LISTID extparms)
 
 static void xbee_teardown(PROGRAMMER *pgm)
 {
-  if (pgm->cookie != NULL)
+  if (pgm->cookie != NULL) {
     free(pgm->cookie);
+    pgm->cookie = NULL;
+  }
 }
 
 const char xbee_desc[] = "XBee Series 2 Over-The-Air (XBeeBoot)";
