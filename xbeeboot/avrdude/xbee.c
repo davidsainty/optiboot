@@ -771,8 +771,8 @@ static int xbeedev_open(char *port, union pinfo pinfo,
     }
   }
 
-  /* Disable RTS */
   if (!xbs->directMode) {
+    /* Attempt to ensure the local XBee is in API mode 2 */
     {
       const int rc = localAT(xbs, 'A', 'P', 2);
       if (rc < 0) {
@@ -783,6 +783,15 @@ static int xbeedev_open(char *port, union pinfo pinfo,
       }
     }
 
+    /*
+     * Disable RTS input on the remove XBee, just in case it is
+     * enabled by default.  XBeeBoot doesn't attempt to support flow
+     * control, and so it may not correctly drive this pin if RTS mode
+     * is the default configuration.
+     *
+     * XBee IO port 6 is the only pin that supports RTS mode, so there
+     * is no need to support any alternative pin.
+     */
     const int rc = sendAT(xbs, 'D', '6', 0);
     if (rc < 0) {
       xbeedev_free(xbs);
