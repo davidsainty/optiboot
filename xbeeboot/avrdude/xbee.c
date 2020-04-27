@@ -965,38 +965,11 @@ static struct serial_device xbee_serdev_frame = {
   .flags = SERDEV_FL_NONE,
 };
 
-struct XBeeProgrammer {
-  int xbeeResetPin; /* The pin on the remote XBee wired to reset the AVR */
-};
-
-static struct XBeeProgrammer* xbee_private(PROGRAMMER *pgm) {
-  if (pgm->cookie != NULL)
-    return (struct XBeeProgrammer*)pgm->cookie;
-
-  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
-  if (xbp == NULL) {
-    avrdude_message(MSG_INFO, "%s: xbee: "
-                    "Out of memory allocating private data\n",
-                    progname);
-    return NULL;
-  }
-
-  xbp->xbeeResetPin = XBEE_DEFAULT_RESET_PIN;
-
-  pgm->cookie = xbp;
-
-  return xbp;
-}
-
 static int xbee_open(PROGRAMMER *pgm, char *port)
 {
   union pinfo pinfo;
   strcpy(pgm->port, port);
   pinfo.baud = pgm->baudrate;
-
-  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
-  if (xbp == NULL)
-    return -1;
 
   /* Wireless is lossier than normal serial */
   serial_recv_timeout = 1000;
@@ -1007,7 +980,13 @@ static int xbee_open(PROGRAMMER *pgm, char *port)
     return -1;
   }
 
-  xbeedev_setresetpin(&pgm->fd, xbp->xbeeResetPin);
+  /*
+   * NB: Because we are making use of the STK500 programmer
+   * implementation, we can't readily use pgm->cookie ourselves.  We
+   * can use the private "flag" field in the PROGRAMMER though, as
+   * it's unused by stk500.c.
+   */
+  xbeedev_setresetpin(&pgm->fd, pgm->flag);
 
   /* Clear DTR and RTS */
   serial_set_dtr_rts(&pgm->fd, 0);
@@ -1055,10 +1034,6 @@ static int xbee_parseextparms(PROGRAMMER *pgm, LISTID extparms)
   const char *extended_param;
   int rc = 0;
 
-  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
-  if (xbp == NULL)
-    return -1;
-
   for (ln = lfirst(extparms); ln; ln = lnext(ln)) {
     extended_param = ldata(ln);
 
@@ -1074,7 +1049,7 @@ static int xbee_parseextparms(PROGRAMMER *pgm, LISTID extparms)
         continue;
       }
 
-      xbp->xbeeResetPin = resetpin;
+      pgm->flag = resetpin;
       continue;
     }
 
@@ -1085,14 +1060,6 @@ static int xbee_parseextparms(PROGRAMMER *pgm, LISTID extparms)
   }
 
   return rc;
-}
-
-static void xbee_teardown(PROGRAMMER *pgm)
-{
-  if (pgm->cookie != NULL) {
-    free(pgm->cookie);
-    pgm->cookie = NULL;
-  }
 }
 
 const char xbee_desc[] = "XBee Series 2 Over-The-Air (XBeeBoot)";
@@ -1110,6 +1077,14 @@ void xbee_initpgm(PROGRAMMER *pgm)
   pgm->read_sig_bytes = xbee_read_sig_bytes;
   pgm->open = xbee_open;
   pgm->close = xbee_close;
-  pgm->teardown = xbee_teardown;
+  
+  /*
+   * NB: Because we are making use of the STK500 programmer
+   * implementation, we can't readily use pgm->cookie ourselves, nor
+   * can we override setup() and teardown().  We can use the private
+   * "flag" field in the PROGRAMMER though, as it's unused by
+   * stk500.c.
+   */
   pgm->parseextparams = xbee_parseextparms;
+  pgm->flag = XBEE_DEFAULT_RESET_PIN;
 }
