@@ -44,6 +44,25 @@
 #include "xbee.h"
 
 /*
+ * For non-direct mode (Over-The-Air) we need to issue XBee commands
+ * to the remote XBee in order to reset the AVR CPU and initiate the
+ * XBeeBoot bootloader.
+ *
+ * XBee IO port 3 is a somewhat-arbitrarily chosen pin that can be
+ * connected directly to the AVR reset pin.
+ *
+ * Note that port 7 was not used because it is the only pin that can
+ * be used as a CTS flow control output.  Port 6 is the only pin that
+ * can be used as an RTS flow control input.
+ *
+ * Some off-the-shelf Arduino shields select a different pin.  For
+ * example this one uses XBee IO port 7.
+ *
+ * https://wiki.dfrobot.com/Xbee_Shield_For_Arduino__no_Xbee___SKU_DFR0015_
+ */
+#define XBEE_DEFAULT_RESET_PIN 3
+
+/*
  * Read signature bytes - Direct copy of the Arduino behaviour to
  * satisfy Optiboot.
  */
@@ -101,6 +120,8 @@ struct XBeeBootSession {
   unsigned char outSequence;
   unsigned char inSequence;
 
+  int xbeeResetPin;
+
   size_t inInIndex;
   size_t inOutIndex;
   unsigned char inBuffer[256];
@@ -109,6 +130,7 @@ struct XBeeBootSession {
 static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
   xbs->serialDevice = &serial_serdev;
   xbs->directMode = 1;
+  xbs->xbeeResetPin = XBEE_DEFAULT_RESET_PIN;
   xbs->outSequence = 0;
   xbs->inSequence = 0;
   xbs->inInIndex = 0;
@@ -116,6 +138,12 @@ static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
 }
 
 #define xbeebootsession(fdp) (struct XBeeBootSession*)((fdp)->pfd)
+
+static void xbeedev_setresetpin(union filedescriptor *fdp, int xbeeResetPin)
+{
+  struct XBeeBootSession *xbs = xbeebootsession(fdp);
+  xbs->xbeeResetPin = xbeeResetPin;
+}
 
 static void sendAPIRequest(struct XBeeBootSession *xbs,
                            unsigned char apiType,
@@ -910,16 +938,8 @@ static int xbeedev_set_dtr_rts(union filedescriptor *fdp, int is_on)
    * For non-direct mode (Over-The-Air) we need to issue XBee commands
    * to the remote XBee in order to reset the AVR CPU and initiate the
    * XBeeBoot bootloader.
-   *
-   * XBee IO port 3 is an arbitrarily chosen pin that can be connected
-   * directly to the AVR reset pin.
-   *
-   * Some off-the-shelf Arduino shields select a different pin.  For
-   * example this one uses XBee IO port 7.
-   *
-   * https://wiki.dfrobot.com/Xbee_Shield_For_Arduino__no_Xbee___SKU_DFR0015_
    */
-  const int rc = sendAT(xbs, 'D', '3', is_on ? 5 : 4);
+  const int rc = sendAT(xbs, 'D', '0' + xbs->xbeeResetPin, is_on ? 5 : 4);
   if (rc < 0) {
     if (xbeeATError(rc))
       return -1;
@@ -945,20 +965,49 @@ static struct serial_device xbee_serdev_frame = {
   .flags = SERDEV_FL_NONE,
 };
 
+struct XBeeProgrammer {
+  int xbeeResetPin; /* The pin on the remote XBee wired to reset the AVR */
+};
+
+static struct XBeeProgrammer* xbee_private(PROGRAMMER *pgm) {
+  if (pgm->cookie != NULL)
+    return (struct XBeeProgrammer*)pgm->cookie;
+
+  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
+  if (xbp == NULL) {
+    avrdude_message(MSG_INFO, "%s: xbee: "
+                    "Out of memory allocating private data\n",
+                    progname);
+    return NULL;
+  }
+
+  xbp->xbeeResetPin = XBEE_DEFAULT_RESET_PIN;
+
+  pgm->cookie = xbp;
+
+  return xbp;
+}
+
 static int xbee_open(PROGRAMMER *pgm, char *port)
 {
   union pinfo pinfo;
   strcpy(pgm->port, port);
   pinfo.baud = pgm->baudrate;
 
+  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
+  if (xbp == NULL)
+    return -1;
+
   /* Wireless is lossier than normal serial */
   serial_recv_timeout = 1000;
 
   serdev = &xbee_serdev_frame;
 
-  if (serial_open(port, pinfo, &pgm->fd)==-1) {
+  if (serial_open(port, pinfo, &pgm->fd) == -1) {
     return -1;
   }
+
+  xbeedev_setresetpin(&pgm->fd, xbp->xbeeResetPin);
 
   /* Clear DTR and RTS */
   serial_set_dtr_rts(&pgm->fd, 0);
@@ -1000,6 +1049,50 @@ static void xbee_close(PROGRAMMER *pgm)
   pgm->fd.pfd = NULL;
 }
 
+static int xbee_parseextparms(PROGRAMMER *pgm, LISTID extparms)
+{
+  LNODEID ln;
+  const char *extended_param;
+  int rc = 0;
+
+  struct XBeeProgrammer *xbp = malloc(sizeof(struct XBeeProgrammer));
+  if (xbp == NULL)
+    return -1;
+
+  for (ln = lfirst(extparms); ln; ln = lnext(ln)) {
+    extended_param = ldata(ln);
+
+    if (strncmp(extended_param,
+                "xbeeresetpin=", 13 /*strlen("xbeeresetpin=")*/) == 0) {
+      int resetpin;
+      if (sscanf(extended_param, "xbeeresetpin=%i", &resetpin) != 1 ||
+          resetpin <= 0 || resetpin > 7) {
+        avrdude_message(MSG_INFO, "%s: xbee_parseextparms(): "
+                        "invalid xbeeresetpin '%s'\n",
+                        progname, extended_param);
+        rc = -1;
+        continue;
+      }
+
+      xbp->xbeeResetPin = resetpin;
+      continue;
+    }
+
+    avrdude_message(MSG_INFO, "%s: xbee_parseextparms(): "
+                    "invalid extended parameter '%s'\n",
+                    progname, extended_param);
+    rc = -1;
+  }
+
+  return rc;
+}
+
+static void xbee_teardown(PROGRAMMER *pgm)
+{
+  if (pgm->cookie != NULL)
+    free(pgm->cookie);
+}
+
 const char xbee_desc[] = "XBee Series 2 Over-The-Air (XBeeBoot)";
 
 void xbee_initpgm(PROGRAMMER *pgm)
@@ -1015,4 +1108,6 @@ void xbee_initpgm(PROGRAMMER *pgm)
   pgm->read_sig_bytes = xbee_read_sig_bytes;
   pgm->open = xbee_open;
   pgm->close = xbee_close;
+  pgm->teardown = xbee_teardown;
+  pgm->parseextparams = xbee_parseextparms;
 }
