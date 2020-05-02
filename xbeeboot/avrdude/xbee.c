@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14121 2020-05-02 03:58:34Z dave $ */
+/* $Id: xbee.c 14122 2020-05-02 04:56:35Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -1063,15 +1063,17 @@ static int xbeedev_send(union filedescriptor *fdp,
     unsigned char maximum_chunk = XBEEBOOT_MAX_CHUNK;
 
     /*
-     * Source routing incurs a two byte cost per intermediate hop.  We
-     * are attempting to avoid fragmentation here, so resize our
+     * Source routing incurs a two byte fixed overhead, plus a two
+     * byte additional cost per intermediate hop.
+     *
+     * We are attempting to avoid fragmentation here, so resize our
      * maximum size to anticipate the overhead of the current number
      * of hops.  If our maximum chunk would be less than one, just
      * give up and hope fragmentation will somehow save us.
      */
     const int hops = xbs->sourceRouteHops;
-    if (hops > 0 && (hops * 2) < XBEEBOOT_MAX_CHUNK)
-      maximum_chunk -= hops * 2;
+    if (hops > 0 && (hops * 2 + 2) < XBEEBOOT_MAX_CHUNK)
+      maximum_chunk -= hops * 2 + 2;
 
     const unsigned char blockLength =
       (buflen > maximum_chunk) ? maximum_chunk : buflen;
