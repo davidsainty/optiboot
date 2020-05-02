@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14111 2020-04-27 11:36:08Z dave $ */
+/* $Id: xbee.c 14121 2020-05-02 03:58:34Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -69,6 +69,45 @@
  * second each).
  */
 #define XBEE_MAX_RETRIES 16
+
+/*
+ * Maximum chunk size, which is the maximum encapsulated payload to be
+ * delivered to the remote CPU.
+ *
+ * There is an additional overhead of 3 bytes encapsulation, one
+ * "REQUEST" byte, one sequence number byte, and one
+ * "FIRMWARE_DELIVER" request type.
+ *
+ * The ZigBee maximum (unfragmented) payload is 84 bytes.  Source
+ * routing decreases that by two bytes overhead, plus two bytes per
+ * hop.  Maximum hop support is for 11 or 25 hops depending on
+ * firmware.
+ *
+ * Network layer encryption decreases the maximum payload by 18 bytes.
+ * APS end-to-end encryption decreases the maximum payload by 9 bytes.
+ * Both these layers are available in concert, as seen in the section
+ * "Network and APS layer encryption", decreasing our maximum payload
+ * by both 18 bytes and 9 bytes.
+ *
+ * Our maximum payload size should therefore ideally be 84 - 18 - 9 =
+ * 57 bytes, and therefore a chunk size of 54 bytes for zero hops.
+ *
+ * Source: XBee X2C manual: "Maximum RF payload size" section for most
+ * details; "Network layer encryption and decryption" section for the
+ * reference to 18 bytes of overhead; and "Enable APS encryption" for
+ * the reference to 9 bytes of overhead.
+ */
+#define XBEEBOOT_MAX_CHUNK 54
+
+/*
+ * Maximum source route intermediate hops.  This is described in the
+ * documentation variously as 40 hops (routing table); OR 25 hops
+ * (firmware 4x58 or later); OR 11 hops (firmware earlier than 4x58).
+ *
+ * What isn't described is how to know if a given source route length
+ * is actually supported by the mesh for our target device.
+ */
+#define XBEE_MAX_INTERMEDIATE_HOPS 40
 
 /*
  * Read signature bytes - Direct copy of the Arduino behaviour to
@@ -140,6 +179,16 @@ struct XBeeBootSession {
   size_t inInIndex;
   size_t inOutIndex;
   unsigned char inBuffer[256];
+
+  int sourceRouteHops; /* -1 if unset */
+  int sourceRouteChanged;
+
+  /*
+   * The source route is an array of intermediate 16 bit addresses,
+   * starting with the address nearest to the target address, and
+   * finishing with the address closest to our local device.
+   */
+  unsigned char sourceRoute[2 * XBEE_MAX_INTERMEDIATE_HOPS];
 };
 
 static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
@@ -152,6 +201,8 @@ static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
   xbs->transportUnusable = 0;
   xbs->inInIndex = 0;
   xbs->inOutIndex = 0;
+  xbs->sourceRouteHops = -1;
+  xbs->sourceRouteChanged = 0;
 }
 
 #define xbeebootsession(fdp) (struct XBeeBootSession*)((fdp)->pfd)
@@ -215,6 +266,27 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
     for (index = 0; index < 10; index++) {
       const unsigned char val = xbs->xbee_address[index];
       fpput(val);
+    }
+
+    /*
+     * If this is an API call with remote address, but is not a Create
+     * Source Route request, consider prefixing it with source routing
+     * instructions.
+     */
+    if (apiType != 0x21 && xbs->sourceRouteChanged) {
+      avrdude_message(MSG_NOTICE2, "%s: sendAPIRequest(): "
+                      "Issuing Create Source Route request with %d hops\n",
+                      progname, xbs->sourceRouteHops);
+
+      int rc = sendAPIRequest(xbs, 0x21, /* Create Source Route */
+                              0, 0, xbs->sourceRouteHops,
+                              -1, -1, -1,
+                              xbs->sourceRouteHops * 2,
+                              xbs->sourceRoute);
+      if (rc != 0)
+        return rc;
+
+      xbs->sourceRouteChanged = 0;
     }
   }
 
@@ -296,6 +368,36 @@ static int sendPacket(struct XBeeBootSession *xbs,
                         sequence, appType, dataLength, data);
 }
 
+#define XBEE_LENGTH_LEN 2
+#define XBEE_CHECKSUM_LEN 1
+#define XBEE_APITYPE_LEN 1
+#define XBEE_APISEQUENCE_LEN 1
+#define XBEE_ADDRESS_64BIT_LEN 8
+#define XBEE_ADDRESS_16BIT_LEN 2
+#define XBEE_RADIUS_LEN 1
+#define XBEE_TXOPTIONS_LEN 1
+#define XBEE_RXOPTIONS_LEN 1
+
+static void xbeedev_record16Bit(struct XBeeBootSession *xbs,
+                                const unsigned char *rx16Bit)
+{
+  /*
+   * We don't start out knowing what the 16-bit device address is, but
+   * we should receive it on the return packets, and re-use it from
+   * that point on.
+   */
+  unsigned char * const tx16Bit =
+    &xbs->xbee_address[XBEE_ADDRESS_64BIT_LEN];
+  if (memcmp(rx16Bit, tx16Bit, XBEE_ADDRESS_16BIT_LEN) != 0) {
+    avrdude_message(MSG_NOTICE2, "%s: xbeedev_record16Bit(): "
+                    "New 16-bit address: %02x%02x\n",
+                    progname,
+                    (unsigned int)rx16Bit[0],
+                    (unsigned int)rx16Bit[1]);
+    memcpy(tx16Bit, rx16Bit, XBEE_ADDRESS_16BIT_LEN);
+  }
+}
+
 /*
  * Return 0 on success.
  * Return -1 on generic error (normally serial timeout).
@@ -307,15 +409,6 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
                         int waitForAck,
                         int waitForSequence)
 {
-#define XBEE_LENGTH_LEN 2
-#define XBEE_CHECKSUM_LEN 1
-#define XBEE_APITYPE_LEN 1
-#define XBEE_APISEQUENCE_LEN 1
-#define XBEE_ADDRESS_64BIT_LEN 8
-#define XBEE_ADDRESS_16BIT_LEN 2
-#define XBEE_RADIUS_LEN 1
-#define XBEE_TXOPTIONS_LEN 1
-#define XBEE_RXOPTIONS_LEN 1
   for (;;) {
     unsigned char byte;
     unsigned char frame[256];
@@ -417,6 +510,70 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
       avrdude_message(MSG_NOTICE2,
                       "%s: xbeedev_poll(): Transmit status %d result code %d\n",
                       progname, (int)frame[3], (int)frame[7]);
+    } else if (frameType == 0xa1 &&
+               frameSize >= XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
+               XBEE_ADDRESS_64BIT_LEN +
+               XBEE_ADDRESS_16BIT_LEN + 2 + XBEE_CHECKSUM_LEN) {
+      /* Route Record Indicator */
+      if (memcmp(&frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN],
+                 xbs->xbee_address, XBEE_ADDRESS_64BIT_LEN) != 0) {
+        /* Not from our target device */
+        avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                        "Route Record Indicator from other XBee");
+        continue;
+      }
+
+      /*
+       * We don't start out knowing what the 16-bit device address is,
+       * but we should receive it on the return packets, and re-use it
+       * from that point on.
+       */
+      {
+        const unsigned char *rx16Bit =
+          &frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
+                 XBEE_ADDRESS_64BIT_LEN];
+        xbeedev_record16Bit(xbs, rx16Bit);
+      }
+
+      const unsigned int header = XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
+        XBEE_ADDRESS_64BIT_LEN +
+        XBEE_ADDRESS_16BIT_LEN;
+
+      const unsigned char receiveOptions = frame[header];
+      const unsigned char hops = frame[header + 1];
+
+      avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                      "Route Record Indicator from target XBee: "
+                      "hops=%d options=%d\n",
+                      progname, (int)hops, (int)receiveOptions);
+
+      if (frameSize < header + 2 + hops * 2 + XBEE_CHECKSUM_LEN)
+        /* Bounds check: Frame is too small */
+        continue;
+
+      const unsigned int tableOffset = header + 2;
+
+      unsigned char index;
+      for (index = 0; index < hops; index++) {
+        avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                        "Route Intermediate Hop %d : %02x%02x\n",
+                        progname, (int)index,
+                        (int)frame[tableOffset + index * 2],
+                        (int)frame[tableOffset + index * 2 + 1]);
+      }
+
+      if (hops <= XBEE_MAX_INTERMEDIATE_HOPS) {
+        if (xbs->sourceRouteHops != (int)hops ||
+            memcmp(&frame[tableOffset], xbs->sourceRoute, hops * 2) != 0) {
+          memcpy(xbs->sourceRoute, &frame[tableOffset], hops * 2);
+          xbs->sourceRouteHops = hops;
+          xbs->sourceRouteChanged = 1;
+
+          avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                          "Route has changed\n",
+                          progname);
+        }
+      }
     } else if (frameType == 0x10 || frameType == 0x90) {
       unsigned char *dataStart;
       unsigned int dataLength;
@@ -463,19 +620,10 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
          * re-use it from that point on.
          */
         {
-          const unsigned char * const rx16Bit =
+          const unsigned char *rx16Bit =
             &frame[XBEE_LENGTH_LEN + XBEE_APITYPE_LEN +
                    XBEE_ADDRESS_64BIT_LEN];
-          unsigned char * const tx16Bit =
-            &xbs->xbee_address[XBEE_ADDRESS_64BIT_LEN];
-          if (memcmp(rx16Bit, tx16Bit, XBEE_ADDRESS_16BIT_LEN) != 0) {
-            avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
-                            "New 16-bit address: %02x%02x\n",
-                            progname,
-                            (unsigned int)rx16Bit[0],
-                            (unsigned int)rx16Bit[1]);
-            memcpy(tx16Bit, rx16Bit, XBEE_ADDRESS_16BIT_LEN);
-          }
+          xbeedev_record16Bit(xbs, rx16Bit);
         }
       }
 
@@ -836,7 +984,40 @@ static int xbeedev_open(char *port, union pinfo pinfo,
      */
 
     /*
-     * Disable RTS input on the remove XBee, just in case it is
+     * Issue an "Aggregate Routing Notification" to enable many-to-one
+     * routing to this device.  This has two effects:
+     *
+     * - Establishes a route from the remote XBee attached to the CPU
+     *   being programmed back to the local XBee.
+     *
+     * - Enables the 0xa1 Route frames so that we can make use of
+     *   Source Routing to deliver packets directly to the remote
+     *   XBee.
+     *
+     * Under "RF packet routing" subsection "Many-to-One routing", the
+     * XBee S2C manual states "Applications that require multiple data
+     * collectors can also use many-to-one routing. If more than one
+     * data collector device sends a many-to-one broadcast, devices
+     * create one reverse routing table entry for each collector."
+     *
+     * Under "RF packet routing" subsection "Source routing", the XBee
+     * S2C manual states "To use source routing, a device must use the
+     * API mode, and it must send periodic many-to-one route request
+     * broadcasts (AR command) to create a many-to-one route to it on
+     * all devices".
+     */
+    {
+      const int rc = localAT(xbs, 'A', 'R', 0);
+      if (rc < 0) {
+        avrdude_message(MSG_INFO, "%s: Local XBee is not responding.\n",
+                        progname);
+        xbeedev_free(xbs);
+        return rc;
+      }
+    }
+
+    /*
+     * Disable RTS input on the remote XBee, just in case it is
      * enabled by default.  XBeeBoot doesn't attempt to support flow
      * control, and so it may not correctly drive this pin if RTS mode
      * is the default configuration.
@@ -877,9 +1058,23 @@ static int xbeedev_send(union filedescriptor *fdp,
     xbs->outSequence = sequence;
 
     /*
-     * Chunk the data into chunks of up to 64 bytes.
+     * Chunk the data into chunks of up to XBEEBOOT_MAX_CHUNK bytes.
      */
-    const unsigned char blockLength = (buflen > 64) ? 64 : buflen;
+    unsigned char maximum_chunk = XBEEBOOT_MAX_CHUNK;
+
+    /*
+     * Source routing incurs a two byte cost per intermediate hop.  We
+     * are attempting to avoid fragmentation here, so resize our
+     * maximum size to anticipate the overhead of the current number
+     * of hops.  If our maximum chunk would be less than one, just
+     * give up and hope fragmentation will somehow save us.
+     */
+    const int hops = xbs->sourceRouteHops;
+    if (hops > 0 && (hops * 2) < XBEEBOOT_MAX_CHUNK)
+      maximum_chunk -= hops * 2;
+
+    const unsigned char blockLength =
+      (buflen > maximum_chunk) ? maximum_chunk : buflen;
 
     int pollRc = 0;
 
