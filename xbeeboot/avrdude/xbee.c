@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14122 2020-05-02 04:56:35Z dave $ */
+/* $Id: xbee.c 14123 2020-05-03 03:53:31Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -109,6 +109,10 @@
  */
 #define XBEE_MAX_INTERMEDIATE_HOPS 40
 
+/* Protocol */
+#define XBEEBOOT_PACKET_TYPE_ACK 0
+#define XBEEBOOT_PACKET_TYPE_REQUEST 1
+
 /*
  * Read signature bytes - Direct copy of the Arduino behaviour to
  * satisfy Optiboot.
@@ -158,6 +162,31 @@ static int xbee_read_sig_bytes(PROGRAMMER *pgm, AVRPART *p, AVRMEM *m)
   return 3;
 }
 
+struct XBeeSequenceStatistics {
+  struct timeval sendTime;
+};
+
+struct XBeeStaticticsSummary {
+  struct timeval minimum;
+  struct timeval maximum;
+  struct timeval sum;
+  unsigned long samples;
+};
+
+#define XBEE_STATS_GROUPS 4
+#define XBEE_STATS_FRAME_LOCAL 0
+#define XBEE_STATS_FRAME_REMOTE 1
+#define XBEE_STATS_TRANSMIT 2
+#define XBEE_STATS_RECEIVE 3
+
+static const char* groupNames[] =
+  {
+   "FRAME_LOCAL",
+   "FRAME_REMOTE",
+   "TRANSMIT",
+   "RECEIVE"
+  };
+
 struct XBeeBootSession {
   struct serial_device *serialDevice;
   union filedescriptor serialDescriptor;
@@ -166,6 +195,10 @@ struct XBeeBootSession {
   int directMode;
   unsigned char outSequence;
   unsigned char inSequence;
+
+  /*
+   * XBee API frame sequence number.
+   */
   unsigned char txSequence;
 
   /*
@@ -189,7 +222,69 @@ struct XBeeBootSession {
    * finishing with the address closest to our local device.
    */
   unsigned char sourceRoute[2 * XBEE_MAX_INTERMEDIATE_HOPS];
+
+  struct XBeeSequenceStatistics sequenceStatistics[256 * XBEE_STATS_GROUPS];
+  struct XBeeStaticticsSummary groupSummary[XBEE_STATS_GROUPS];
 };
+
+static void xbeeStatsReset(struct XBeeStaticticsSummary *summary)
+{
+  summary->minimum.tv_sec = 0;
+  summary->minimum.tv_usec = 0;
+  summary->maximum.tv_sec = 0;
+  summary->maximum.tv_usec = 0;
+  summary->sum.tv_sec = 0;
+  summary->sum.tv_usec = 0;
+  summary->samples = 0;
+}
+
+static void xbeeStatsAdd(struct XBeeStaticticsSummary *summary,
+                         struct timeval const *sample)
+{
+  summary->sum.tv_usec += sample->tv_usec;
+  if (summary->sum.tv_usec > 1000000) {
+    summary->sum.tv_usec -= 1000000;
+    summary->sum.tv_sec++;
+  }
+  summary->sum.tv_sec += sample->tv_sec;
+
+  if (summary->samples == 0 ||
+      summary->minimum.tv_sec > sample->tv_sec ||
+      (summary->minimum.tv_sec == sample->tv_sec &&
+       summary->minimum.tv_usec > sample->tv_usec)) {
+    summary->minimum = *sample;
+  }
+
+  if (summary->maximum.tv_sec < sample->tv_sec ||
+      (summary->maximum.tv_sec == sample->tv_sec &&
+       summary->maximum.tv_usec < sample->tv_usec)) {
+    summary->maximum = *sample;
+  }
+
+  summary->samples++;
+}
+
+static void xbeeStatsSummarise(struct XBeeStaticticsSummary const *summary)
+{
+  avrdude_message(MSG_NOTICE, "%s: Minimum response time: %lu.%06lu\n",
+                  progname, summary->minimum.tv_sec, summary->minimum.tv_usec);
+  avrdude_message(MSG_NOTICE, "%s: Maximum response time: %lu.%06lu\n",
+                  progname, summary->maximum.tv_sec, summary->maximum.tv_usec);
+
+  struct timeval average;
+
+  const unsigned long samples = summary->samples;
+  average.tv_sec = summary->sum.tv_sec / samples;
+
+  unsigned long long usecs = summary->sum.tv_usec;
+  usecs += (summary->sum.tv_sec % samples) * 1000000;
+  usecs = usecs / samples;
+  average.tv_sec += usecs / 1000000;
+  average.tv_usec = usecs % 1000000;
+
+  avrdude_message(MSG_NOTICE, "%s: Average response time: %lu.%06lu\n",
+                  progname, average.tv_sec, average.tv_usec);
+}
 
 static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
   xbs->serialDevice = &serial_serdev;
@@ -203,6 +298,14 @@ static void XBeeBootSessionInit(struct XBeeBootSession *xbs) {
   xbs->inOutIndex = 0;
   xbs->sourceRouteHops = -1;
   xbs->sourceRouteChanged = 0;
+
+  int group;
+  for (group = 0; group < 3; group++) {
+    int index;
+    for (index = 0; index < 256; index++)
+      xbs->sequenceStatistics[group * 256 + index].sendTime.tv_sec = (time_t)0;
+    xbeeStatsReset(&xbs->groupSummary[group]);
+  }
 }
 
 #define xbeebootsession(fdp) (struct XBeeBootSession*)((fdp)->pfd)
@@ -213,14 +316,75 @@ static void xbeedev_setresetpin(union filedescriptor *fdp, int xbeeResetPin)
   xbs->xbeeResetPin = xbeeResetPin;
 }
 
+static void xbeedev_stats_send(struct XBeeBootSession *xbs,
+                               char const *detail,
+                               unsigned int group, unsigned char sequence,
+                               struct timeval const *sendTime)
+{
+  struct XBeeSequenceStatistics *stats =
+    &xbs->sequenceStatistics[group * 256 + sequence];
+
+  stats->sendTime = *sendTime;
+
+  avrdude_message(MSG_NOTICE2,
+                  "%s: Stats: Send Group %s Sequence %u : "
+                  "Send %lu.%06lu %s\n",
+                  progname, groupNames[group],
+                  (unsigned int)sequence,
+                  (unsigned long)sendTime->tv_sec,
+                  (unsigned long)sendTime->tv_usec,
+                  detail);
+}
+
+static void xbeedev_stats_receive(struct XBeeBootSession *xbs,
+                                  char const *detail,
+                                  unsigned int group, unsigned char sequence,
+                                  struct timeval const *receiveTime)
+{
+  struct XBeeSequenceStatistics *stats =
+    &xbs->sequenceStatistics[group * 256 + sequence];
+  struct timeval delay;
+  time_t secs;
+  long usecs;
+
+  secs = receiveTime->tv_sec - stats->sendTime.tv_sec;
+  usecs = receiveTime->tv_usec - stats->sendTime.tv_usec;
+
+  if (usecs < 0) {
+    usecs += 1000000;
+    secs--;
+  }
+
+  delay.tv_sec = secs;
+  delay.tv_usec = usecs;
+
+  avrdude_message(MSG_NOTICE2,
+                  "%s: Stats: Receive Group %s Sequence %u : "
+                  "Send %lu.%06lu Receive %lu.%06lu Delay %lu.%06lu %s\n",
+                  progname, groupNames[group],
+                  (unsigned int)sequence,
+                  (unsigned long)stats->sendTime.tv_sec,
+                  (unsigned long)stats->sendTime.tv_usec,
+                  (unsigned long)receiveTime->tv_sec,
+                  (unsigned long)receiveTime->tv_usec,
+                  (unsigned long)secs,
+                  (unsigned long)usecs,
+                  detail);
+
+  xbeeStatsAdd(&xbs->groupSummary[group], &delay);
+}
+
 static int sendAPIRequest(struct XBeeBootSession *xbs,
                           unsigned char apiType,
+                          int txSequence,
                           int apiOption,
                           int prePayload1,
                           int prePayload2,
                           int packetType,
                           int sequence,
                           int appType,
+                          char const *detail,
+                          unsigned int frameGroup,
                           unsigned int dataLength,
                           const unsigned char *data)
 {
@@ -230,17 +394,16 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
   unsigned char *dataStart = fp;
   unsigned char checksum = 0xff;
   unsigned char length = 0;
+  struct timeval time;
 
-  if (verbose >= MSG_NOTICE2) {
-    struct timeval time;
-    gettimeofday(&time, NULL);
-    avrdude_message(MSG_NOTICE2,
-                    "%s: sendAPIRequest(): %lu.%06lu %d, %d, %d, %d\n",
-                    progname, (unsigned long)time.tv_sec,
-                    (unsigned long)time.tv_usec,
-                    (int)packetType, (int)sequence, appType,
-                    data == NULL ? -1 : (int)*data);
-  }
+  gettimeofday(&time, NULL);
+
+  avrdude_message(MSG_NOTICE2,
+                  "%s: sendAPIRequest(): %lu.%06lu %d, %d, %d, %d %s\n",
+                  progname, (unsigned long)time.tv_sec,
+                  (unsigned long)time.tv_usec,
+                  (int)packetType, (int)sequence, appType,
+                  data == NULL ? -1 : (int)*data, detail);
 
 #define fpput(x)                                                \
   do {                                                          \
@@ -258,7 +421,14 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
   fpput(apiType); /* ZigBee Receive Packet or ZigBee Transmit Request */
 
   if (apiOption >= 0)
-    fpput(apiOption); /* Receive options (RX) or Delivery sequence (TX/AT) */
+    fpput(apiOption); /* Receive options (RX) */
+
+  if (txSequence >= 0) {
+    fpput(txSequence); /* Delivery sequence (TX/AT) */
+
+    /* Record the frame send time */
+    xbeedev_stats_send(xbs, detail, frameGroup, txSequence, &time);
+  }
 
   if (apiType != 0x08) {
     /* Automatically inhibit addressing for local AT command requests. */
@@ -279,8 +449,10 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
                       progname, xbs->sourceRouteHops);
 
       int rc = sendAPIRequest(xbs, 0x21, /* Create Source Route */
-                              0, 0, xbs->sourceRouteHops,
+                              0, -1, 0, xbs->sourceRouteHops,
                               -1, -1, -1,
+                              "Create Source Route",
+                              XBEE_STATS_FRAME_LOCAL, /* Local, no response */
                               xbs->sourceRouteHops * 2,
                               xbs->sourceRoute);
       if (rc != 0)
@@ -297,10 +469,15 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
     fpput(prePayload2); /* Transmit options */
 
   if (packetType >= 0)
-    fpput(packetType); /* REQUEST */
+    fpput(packetType); /* XBEEBOOT_PACKET_TYPE_{ACK,REQUEST} */
 
-  if (sequence >= 0)
+  if (sequence >= 0) {
     fpput(sequence);
+
+    /* Record the send time */
+    if (packetType == XBEEBOOT_PACKET_TYPE_REQUEST)
+      xbeedev_stats_send(xbs, detail, XBEE_STATS_TRANSMIT, sequence, &time);
+  }
 
   if (appType >= 0)
     fpput(appType); /* FIRMWARE_DELIVER */
@@ -332,6 +509,7 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
 }
 
 static int sendPacket(struct XBeeBootSession *xbs,
+                      const char *detail,
                       unsigned char packetType,
                       unsigned char sequence,
                       int appType,
@@ -363,9 +541,12 @@ static int sendPacket(struct XBeeBootSession *xbs,
   }
 
   while ((++xbs->txSequence & 0xff) == 0);
-  return sendAPIRequest(xbs, apiType, xbs->txSequence,
+  return sendAPIRequest(xbs, apiType, xbs->txSequence, -1,
                         prePayload1, prePayload2, packetType,
-                        sequence, appType, dataLength, data);
+                        sequence, appType,
+                        detail,
+                        XBEE_STATS_FRAME_REMOTE,
+                        dataLength, data);
 }
 
 #define XBEE_LENGTH_LEN 2
@@ -481,32 +662,51 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
 
     const unsigned char frameType = frame[2];
 
+    struct timeval receiveTime;
+    gettimeofday(&receiveTime, NULL);
+
     avrdude_message(MSG_NOTICE2,
-                    "%s: xbeedev_poll(): Received frame type %x\n",
-                    progname, (unsigned int)frameType);
+                    "%s: xbeedev_poll(): %lu.%06lu Received frame type %x\n",
+                    progname, (unsigned long)receiveTime.tv_sec,
+                    (unsigned long)receiveTime.tv_usec,
+                    (unsigned int)frameType);
 
     if (frameType == 0x97 && frameSize > 16) {
       /* Remote command response */
+      unsigned char txSequence = frame[3];
       unsigned char resultCode = frame[16];
+
+      xbeedev_stats_receive(xbs, "Remote AT command response",
+                            XBEE_STATS_FRAME_REMOTE, txSequence, &receiveTime);
 
       avrdude_message(MSG_NOTICE,
                       "%s: xbeedev_poll(): Remote command %d result code %d\n",
-                      progname, (int)frame[3], (int)resultCode);
+                      progname, (int)txSequence, (int)resultCode);
 
       if (waitForSequence >= 0 && waitForSequence == frame[3])
         /* Received result for our sequence numbered request */
         return -512 + resultCode;
     } else if (frameType == 0x88 && frameSize > 6) {
       /* Local command response */
+      unsigned char txSequence = frame[3];
+
+      xbeedev_stats_receive(xbs, "Local AT command response",
+                            XBEE_STATS_FRAME_LOCAL, txSequence, &receiveTime);
+
       avrdude_message(MSG_NOTICE,
                       "%s: xbeedev_poll(): Local command %c%c result code %d\n",
                       progname, frame[4], frame[5], (int)frame[6]);
 
-      if (waitForSequence >= 0 && waitForSequence == frame[3])
+      if (waitForSequence >= 0 && waitForSequence == txSequence)
         /* Received result for our sequence numbered request */
         return 0;
     } else if (frameType == 0x8b && frameSize > 7) {
       /* Transmit status */
+      unsigned char txSequence = frame[3];
+
+      xbeedev_stats_receive(xbs, "Transmit status", XBEE_STATS_FRAME_REMOTE,
+                            txSequence, &receiveTime);
+
       avrdude_message(MSG_NOTICE2,
                       "%s: xbeedev_poll(): Transmit status %d result code %d\n",
                       progname, (int)frame[3], (int)frame[7]);
@@ -631,27 +831,30 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
         const unsigned char protocolType = dataStart[0];
         const unsigned char sequence = dataStart[1];
 
-        if (verbose >= MSG_NOTICE2) {
-          struct timeval time;
-          gettimeofday(&time, NULL);
-          avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
-                          "%lu.%06lu Packet %d #%d\n",
-                          progname, (unsigned long)time.tv_sec,
-                          (unsigned long)time.tv_usec,
-                          (int)protocolType, (int)sequence);
-        }
+        avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
+                        "%lu.%06lu Packet %d #%d\n",
+                        progname, (unsigned long)receiveTime.tv_sec,
+                        (unsigned long)receiveTime.tv_usec,
+                        (int)protocolType, (int)sequence);
 
-        if (protocolType == 0) {
+        if (protocolType == XBEEBOOT_PACKET_TYPE_ACK) {
           /* ACK */
+          xbeedev_stats_receive(xbs, "XBeeBoot ACK",
+                                XBEE_STATS_TRANSMIT, sequence,
+                                &receiveTime);
+
           /*
            * We can't update outSequence here, we already do that
            * somewhere else.
            */
           if (waitForAck >= 0 && waitForAck == sequence)
             return 0;
-        } else if (protocolType == 1 && dataLength >= 4 &&
-                   dataStart[2] == 24) {
+        } else if (protocolType == XBEEBOOT_PACKET_TYPE_REQUEST &&
+                   dataLength >= 4 && dataStart[2] == 24) {
           /* REQUEST FRAME_REPLY */
+          xbeedev_stats_receive(xbs, "XBeeBoot Receive", XBEE_STATS_RECEIVE,
+                                sequence, &receiveTime);
+
           unsigned char nextSequence = xbs->inSequence;
           while ((++nextSequence & 0xff) == 0);
           if (sequence == nextSequence) {
@@ -679,11 +882,17 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
             }
 
             /*avrdude_message(MSG_INFO, "ACK %x\n", (unsigned int)sequence);*/
-            sendPacket(xbs, 0 /* ACK */, sequence, -1, 0, NULL);
+            sendPacket(xbs, "Transmit Request ACK",
+                       XBEEBOOT_PACKET_TYPE_ACK, sequence, -1, 0, NULL);
 
             if (buf != NULL && *buflen == 0)
               /* Input buffer has been filled */
               return 0;
+
+            /* Input buffer has NOT been filled, we are still in a receive */
+            while ((++nextSequence & 0xff) == 0);
+            xbeedev_stats_send(xbs, "poll", XBEE_STATS_RECEIVE,
+                               nextSequence, &receiveTime);
           }
         }
       }
@@ -691,7 +900,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
   }
 }
 
-static int localAT(struct XBeeBootSession *xbs,
+static int localAT(struct XBeeBootSession *xbs, char const *detail,
                    unsigned char at1, unsigned char at2, int value)
 {
   if (xbs->directMode)
@@ -717,7 +926,9 @@ static int localAT(struct XBeeBootSession *xbs,
                   progname, at1, at2);
 
   /* Local AT command 0x08 */
-  sendAPIRequest(xbs, 0x08, -1, -1, -1, -1, sequence, -1, length, buf);
+  sendAPIRequest(xbs, 0x08, sequence, -1, -1, -1, -1, -1, -1,
+                 detail, XBEE_STATS_FRAME_LOCAL,
+                 length, buf);
 
   int retries;
   for (retries = 0; retries < 5; retries++) {
@@ -734,7 +945,7 @@ static int localAT(struct XBeeBootSession *xbs,
  * Return -1 on generic error (normally serial timeout).
  * Return -512 + XBee AT Response code
  */
-static int sendAT(struct XBeeBootSession *xbs,
+static int sendAT(struct XBeeBootSession *xbs, char const *detail,
                   unsigned char at1, unsigned char at2, int value)
 {
   if (xbs->directMode)
@@ -760,9 +971,11 @@ static int sendAT(struct XBeeBootSession *xbs,
                   "%s: Remote AT command: %c%c\n", progname, at1, at2);
 
   /* Remote AT command 0x17 with Apply Changes 0x02 */
-  sendAPIRequest(xbs, 0x17, sequence,
+  sendAPIRequest(xbs, 0x17, sequence, -1,
                  -1, -1, -1,
-                 0x02, -1, length, buf);
+                 0x02, -1,
+                 detail, XBEE_STATS_FRAME_REMOTE,
+                 length, buf);
 
   int retries;
   for (retries = 0; retries < 30; retries++) {
@@ -966,7 +1179,7 @@ static int xbeedev_open(char *port, union pinfo pinfo,
   if (!xbs->directMode) {
     /* Attempt to ensure the local XBee is in API mode 2 */
     {
-      const int rc = localAT(xbs, 'A', 'P', 2);
+      const int rc = localAT(xbs, "AT AP=2", 'A', 'P', 2);
       if (rc < 0) {
         avrdude_message(MSG_INFO, "%s: Local XBee is not responding.\n",
                         progname);
@@ -1007,7 +1220,7 @@ static int xbeedev_open(char *port, union pinfo pinfo,
      * all devices".
      */
     {
-      const int rc = localAT(xbs, 'A', 'R', 0);
+      const int rc = localAT(xbs, "AT AR=0", 'A', 'R', 0);
       if (rc < 0) {
         avrdude_message(MSG_INFO, "%s: Local XBee is not responding.\n",
                         progname);
@@ -1025,7 +1238,7 @@ static int xbeedev_open(char *port, union pinfo pinfo,
      * XBee IO port 6 is the only pin that supports RTS mode, so there
      * is no need to support any alternative pin.
      */
-    const int rc = sendAT(xbs, 'D', '6', 0);
+    const int rc = sendAT(xbs, "AT D6=0", 'D', '6', 0);
     if (rc < 0) {
       xbeedev_free(xbs);
 
@@ -1058,6 +1271,24 @@ static int xbeedev_send(union filedescriptor *fdp,
     xbs->outSequence = sequence;
 
     /*
+     * We are about to send some data, and that might lead potentially
+     * to received data before we see the ACK for this transmission.
+     * As this might be the trigger seen before the next "recv"
+     * operation, record that we have delivered this potential
+     * trigger.
+     */
+    {
+      unsigned char nextSequence = xbs->inSequence;
+      while ((++nextSequence & 0xff) == 0);
+
+      struct timeval sendTime;
+      gettimeofday(&sendTime, NULL);
+
+      xbeedev_stats_send(xbs, "send", XBEE_STATS_RECEIVE,
+                         nextSequence, &sendTime);
+    }
+
+    /*
      * Chunk the data into chunks of up to XBEEBOOT_MAX_CHUNK bytes.
      */
     unsigned char maximum_chunk = XBEEBOOT_MAX_CHUNK;
@@ -1083,7 +1314,8 @@ static int xbeedev_send(union filedescriptor *fdp,
     /* Repeatedly send whilst timing out waiting for ACK responses. */
     int retries;
     for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
-      int sendRc = sendPacket(xbs, 1 /* REQUEST */, sequence,
+      int sendRc = sendPacket(xbs, "Transmit Request Data",
+                              XBEEBOOT_PACKET_TYPE_REQUEST, sequence,
                               23 /* FIRMWARE_DELIVER */,
                               blockLength, buf);
       if (sendRc < 0) {
@@ -1106,7 +1338,9 @@ static int xbeedev_send(union filedescriptor *fdp,
        * unless it's zero which is an illegal sequence number.
        */
       if (xbs->inSequence != 0) {
-        int ackRc = sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
+        int ackRc = sendPacket(xbs, "Transmit Request ACK [Retry in send]",
+                               XBEEBOOT_PACKET_TYPE_ACK,
+                               xbs->inSequence, -1, 0, NULL);
         if (ackRc < 0) {
           /* There is no way to recover from a failure mid-send */
           xbs->transportUnusable = 1;
@@ -1146,6 +1380,21 @@ static int xbeedev_recv(union filedescriptor *fdp,
     /* Don't attempt to continue on an unusable transport layer */
     return -1;
 
+  /*
+   * When we expect to receive data, that is the time to start the
+   * clock.
+   */
+  {
+    unsigned char nextSequence = xbs->inSequence;
+    while ((++nextSequence & 0xff) == 0);
+
+    struct timeval sendTime;
+    gettimeofday(&sendTime, NULL);
+
+    xbeedev_stats_send(xbs, "recv", XBEE_STATS_RECEIVE,
+                       nextSequence, &sendTime);
+  }
+
   int retries;
   for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
     const int rc = xbeedev_poll(xbs, &buf, &buflen, -1, -1);
@@ -1161,7 +1410,8 @@ static int xbeedev_recv(union filedescriptor *fdp,
      * timeout.
      */
     if (xbs->inSequence != 0)
-      sendPacket(xbs, 0 /* ACK */, xbs->inSequence, -1, 0, NULL);
+      sendPacket(xbs, "Transmit Request ACK [Retry in recv]",
+                 XBEEBOOT_PACKET_TYPE_ACK, xbs->inSequence, -1, 0, NULL);
   }
   return -1;
 }
@@ -1198,7 +1448,8 @@ static int xbeedev_set_dtr_rts(union filedescriptor *fdp, int is_on)
    * to the remote XBee in order to reset the AVR CPU and initiate the
    * XBeeBoot bootloader.
    */
-  const int rc = sendAT(xbs, 'D', '0' + xbs->xbeeResetPin, is_on ? 5 : 4);
+  const int rc = sendAT(xbs, is_on ? "AT [DTR]=low" : "AT [DTR]=high",
+                        'D', '0' + xbs->xbeeResetPin, is_on ? 5 : 4);
   if (rc < 0) {
     if (xbeeATError(rc))
       return -1;
@@ -1334,9 +1585,18 @@ static void xbee_close(PROGRAMMER *pgm)
    * communications on the mesh.
    */
   if (!xbs->directMode) {
-    const int rc = sendAT(xbs, 'F', 'R', -1);
+    const int rc = sendAT(xbs, "AT FR", 'F', 'R', -1);
     xbeeATError(rc);
   }
+
+  avrdude_message(MSG_NOTICE, "%s: Statistics for local requests\n", progname);
+  xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_FRAME_LOCAL]);
+  avrdude_message(MSG_NOTICE, "%s: Statistics for remote requests\n", progname);
+  xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_FRAME_REMOTE]);
+  avrdude_message(MSG_NOTICE, "%s: Statistics for TX requests\n", progname);
+  xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_TRANSMIT]);
+  avrdude_message(MSG_NOTICE, "%s: Statistics for RX requests\n", progname);
+  xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_RECEIVE]);
 
   xbeedev_free(xbs);
 
