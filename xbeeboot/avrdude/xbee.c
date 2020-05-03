@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14126 2020-05-03 06:06:29Z dave $ */
+/* $Id: xbee.c 14127 2020-05-03 06:11:11Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -1598,7 +1598,11 @@ static void xbee_close(PROGRAMMER *pgm)
 {
   struct XBeeBootSession *xbs = xbeebootsession(&pgm->fd);
 
-  xbs->serialDevice->set_dtr_rts(&xbs->serialDescriptor, 0);
+  /*
+   * NB: This request is for the target device, not the locally
+   * connected serial device.
+   */
+  serial_set_dtr_rts(&pgm->fd, 0);
 
   /*
    * We have tweaked a few settings on the XBee, including the RTS
