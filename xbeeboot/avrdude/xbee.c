@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14123 2020-05-03 03:53:31Z dave $ */
+/* $Id: xbee.c 14124 2020-05-03 05:24:28Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -318,6 +318,7 @@ static void xbeedev_setresetpin(union filedescriptor *fdp, int xbeeResetPin)
 
 static void xbeedev_stats_send(struct XBeeBootSession *xbs,
                                char const *detail,
+                               int detailSequence,
                                unsigned int group, unsigned char sequence,
                                struct timeval const *sendTime)
 {
@@ -326,14 +327,25 @@ static void xbeedev_stats_send(struct XBeeBootSession *xbs,
 
   stats->sendTime = *sendTime;
 
-  avrdude_message(MSG_NOTICE2,
-                  "%s: Stats: Send Group %s Sequence %u : "
-                  "Send %lu.%06lu %s\n",
-                  progname, groupNames[group],
-                  (unsigned int)sequence,
-                  (unsigned long)sendTime->tv_sec,
-                  (unsigned long)sendTime->tv_usec,
-                  detail);
+  if (detailSequence >= 0) {
+    avrdude_message(MSG_NOTICE2,
+                    "%s: Stats: Send Group %s Sequence %u : "
+                    "Send %lu.%06lu %s Sequence %d\n",
+                    progname, groupNames[group],
+                    (unsigned int)sequence,
+                    (unsigned long)sendTime->tv_sec,
+                    (unsigned long)sendTime->tv_usec,
+                    detail, detailSequence);
+  } else {
+    avrdude_message(MSG_NOTICE2,
+                    "%s: Stats: Send Group %s Sequence %u : "
+                    "Send %lu.%06lu %s\n",
+                    progname, groupNames[group],
+                    (unsigned int)sequence,
+                    (unsigned long)sendTime->tv_sec,
+                    (unsigned long)sendTime->tv_usec,
+                    detail);
+  }
 }
 
 static void xbeedev_stats_receive(struct XBeeBootSession *xbs,
@@ -384,6 +396,7 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
                           int sequence,
                           int appType,
                           char const *detail,
+                          int detailSequence,
                           unsigned int frameGroup,
                           unsigned int dataLength,
                           const unsigned char *data)
@@ -427,7 +440,8 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
     fpput(txSequence); /* Delivery sequence (TX/AT) */
 
     /* Record the frame send time */
-    xbeedev_stats_send(xbs, detail, frameGroup, txSequence, &time);
+    xbeedev_stats_send(xbs, detail, detailSequence,
+                       frameGroup, txSequence, &time);
   }
 
   if (apiType != 0x08) {
@@ -451,7 +465,8 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
       int rc = sendAPIRequest(xbs, 0x21, /* Create Source Route */
                               0, -1, 0, xbs->sourceRouteHops,
                               -1, -1, -1,
-                              "Create Source Route",
+                              "Create Source Route for FRAME_REMOTE",
+                              txSequence,
                               XBEE_STATS_FRAME_LOCAL, /* Local, no response */
                               xbs->sourceRouteHops * 2,
                               xbs->sourceRoute);
@@ -476,7 +491,8 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
 
     /* Record the send time */
     if (packetType == XBEEBOOT_PACKET_TYPE_REQUEST)
-      xbeedev_stats_send(xbs, detail, XBEE_STATS_TRANSMIT, sequence, &time);
+      xbeedev_stats_send(xbs, detail, sequence, XBEE_STATS_TRANSMIT,
+                         sequence, &time);
   }
 
   if (appType >= 0)
@@ -544,7 +560,7 @@ static int sendPacket(struct XBeeBootSession *xbs,
   return sendAPIRequest(xbs, apiType, xbs->txSequence, -1,
                         prePayload1, prePayload2, packetType,
                         sequence, appType,
-                        detail,
+                        detail, sequence,
                         XBEE_STATS_FRAME_REMOTE,
                         dataLength, data);
 }
@@ -882,7 +898,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
             }
 
             /*avrdude_message(MSG_INFO, "ACK %x\n", (unsigned int)sequence);*/
-            sendPacket(xbs, "Transmit Request ACK",
+            sendPacket(xbs, "Transmit Request ACK for RECEIVE",
                        XBEEBOOT_PACKET_TYPE_ACK, sequence, -1, 0, NULL);
 
             if (buf != NULL && *buflen == 0)
@@ -891,7 +907,9 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
 
             /* Input buffer has NOT been filled, we are still in a receive */
             while ((++nextSequence & 0xff) == 0);
-            xbeedev_stats_send(xbs, "poll", XBEE_STATS_RECEIVE,
+            xbeedev_stats_send(xbs, "poll() implies pending RECEIVE",
+                               nextSequence,
+                               XBEE_STATS_RECEIVE,
                                nextSequence, &receiveTime);
           }
         }
@@ -927,7 +945,7 @@ static int localAT(struct XBeeBootSession *xbs, char const *detail,
 
   /* Local AT command 0x08 */
   sendAPIRequest(xbs, 0x08, sequence, -1, -1, -1, -1, -1, -1,
-                 detail, XBEE_STATS_FRAME_LOCAL,
+                 detail, -1, XBEE_STATS_FRAME_LOCAL,
                  length, buf);
 
   int retries;
@@ -974,7 +992,7 @@ static int sendAT(struct XBeeBootSession *xbs, char const *detail,
   sendAPIRequest(xbs, 0x17, sequence, -1,
                  -1, -1, -1,
                  0x02, -1,
-                 detail, XBEE_STATS_FRAME_REMOTE,
+                 detail, -1, XBEE_STATS_FRAME_REMOTE,
                  length, buf);
 
   int retries;
@@ -1284,7 +1302,9 @@ static int xbeedev_send(union filedescriptor *fdp,
       struct timeval sendTime;
       gettimeofday(&sendTime, NULL);
 
-      xbeedev_stats_send(xbs, "send", XBEE_STATS_RECEIVE,
+      xbeedev_stats_send(xbs, "send() hints possible triggered RECEIVE",
+                         nextSequence,
+                         XBEE_STATS_RECEIVE,
                          nextSequence, &sendTime);
     }
 
@@ -1314,7 +1334,8 @@ static int xbeedev_send(union filedescriptor *fdp,
     /* Repeatedly send whilst timing out waiting for ACK responses. */
     int retries;
     for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
-      int sendRc = sendPacket(xbs, "Transmit Request Data",
+      int sendRc = sendPacket(xbs,
+                              "Transmit Request Data, expect ACK for TRANSMIT",
                               XBEEBOOT_PACKET_TYPE_REQUEST, sequence,
                               23 /* FIRMWARE_DELIVER */,
                               blockLength, buf);
@@ -1338,7 +1359,9 @@ static int xbeedev_send(union filedescriptor *fdp,
        * unless it's zero which is an illegal sequence number.
        */
       if (xbs->inSequence != 0) {
-        int ackRc = sendPacket(xbs, "Transmit Request ACK [Retry in send]",
+        int ackRc = sendPacket(xbs,
+                               "Transmit Request ACK [Retry in send] "
+                               "for RECEIVE",
                                XBEEBOOT_PACKET_TYPE_ACK,
                                xbs->inSequence, -1, 0, NULL);
         if (ackRc < 0) {
@@ -1391,7 +1414,9 @@ static int xbeedev_recv(union filedescriptor *fdp,
     struct timeval sendTime;
     gettimeofday(&sendTime, NULL);
 
-    xbeedev_stats_send(xbs, "recv", XBEE_STATS_RECEIVE,
+    xbeedev_stats_send(xbs, "recv() implies pending RECEIVE",
+                       nextSequence,
+                       XBEE_STATS_RECEIVE,
                        nextSequence, &sendTime);
   }
 
@@ -1410,7 +1435,7 @@ static int xbeedev_recv(union filedescriptor *fdp,
      * timeout.
      */
     if (xbs->inSequence != 0)
-      sendPacket(xbs, "Transmit Request ACK [Retry in recv]",
+      sendPacket(xbs, "Transmit Request ACK [Retry in recv] for RECEIVE",
                  XBEEBOOT_PACKET_TYPE_ACK, xbs->inSequence, -1, 0, NULL);
   }
   return -1;
