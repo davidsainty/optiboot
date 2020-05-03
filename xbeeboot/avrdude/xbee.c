@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14127 2020-05-03 06:11:11Z dave $ */
+/* $Id: xbee.c 14128 2020-05-03 12:49:37Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -316,16 +316,21 @@ static void xbeedev_setresetpin(union filedescriptor *fdp, int xbeeResetPin)
   xbs->xbeeResetPin = xbeeResetPin;
 }
 
+enum xbee_stat_is_retry_enum {XBEE_STATS_NOT_RETRY, XBEE_STATS_IS_RETRY};
+typedef enum xbee_stat_is_retry_enum xbee_stat_is_retry;
+
 static void xbeedev_stats_send(struct XBeeBootSession *xbs,
                                char const *detail,
                                int detailSequence,
                                unsigned int group, unsigned char sequence,
+                               xbee_stat_is_retry retry,
                                struct timeval const *sendTime)
 {
   struct XBeeSequenceStatistics *stats =
     &xbs->sequenceStatistics[group * 256 + sequence];
 
-  stats->sendTime = *sendTime;
+  if (retry == XBEE_STATS_NOT_RETRY)
+    stats->sendTime = *sendTime;
 
   if (detailSequence >= 0) {
     avrdude_message(MSG_NOTICE2,
@@ -398,6 +403,7 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
                           char const *detail,
                           int detailSequence,
                           unsigned int frameGroup,
+                          xbee_stat_is_retry retry,
                           unsigned int dataLength,
                           const unsigned char *data)
 {
@@ -439,9 +445,12 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
   if (txSequence >= 0) {
     fpput(txSequence); /* Delivery sequence (TX/AT) */
 
-    /* Record the frame send time */
+    /*
+     * Record the frame send time.  Note that frame sequences are
+     * never retries.
+     */
     xbeedev_stats_send(xbs, detail, detailSequence,
-                       frameGroup, txSequence, &time);
+                       frameGroup, txSequence, 0, &time);
   }
 
   if (apiType != 0x08) {
@@ -468,6 +477,7 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
                               "Create Source Route for FRAME_REMOTE",
                               txSequence,
                               XBEE_STATS_FRAME_LOCAL, /* Local, no response */
+                              0, /* Not a retry */
                               xbs->sourceRouteHops * 2,
                               xbs->sourceRoute);
       if (rc != 0)
@@ -492,7 +502,7 @@ static int sendAPIRequest(struct XBeeBootSession *xbs,
     /* Record the send time */
     if (packetType == XBEEBOOT_PACKET_TYPE_REQUEST)
       xbeedev_stats_send(xbs, detail, sequence, XBEE_STATS_TRANSMIT,
-                         sequence, &time);
+                         sequence, retry, &time);
   }
 
   if (appType >= 0)
@@ -528,6 +538,7 @@ static int sendPacket(struct XBeeBootSession *xbs,
                       const char *detail,
                       unsigned char packetType,
                       unsigned char sequence,
+                      xbee_stat_is_retry retry,
                       int appType,
                       unsigned int dataLength,
                       const unsigned char *data)
@@ -561,7 +572,7 @@ static int sendPacket(struct XBeeBootSession *xbs,
                         prePayload1, prePayload2, packetType,
                         sequence, appType,
                         detail, sequence,
-                        XBEE_STATS_FRAME_REMOTE,
+                        XBEE_STATS_FRAME_REMOTE, retry,
                         dataLength, data);
 }
 
@@ -899,18 +910,25 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
 
             /*avrdude_message(MSG_INFO, "ACK %x\n", (unsigned int)sequence);*/
             sendPacket(xbs, "Transmit Request ACK for RECEIVE",
-                       XBEEBOOT_PACKET_TYPE_ACK, sequence, -1, 0, NULL);
+                       XBEEBOOT_PACKET_TYPE_ACK, sequence,
+                       XBEE_STATS_NOT_RETRY,
+                       -1, 0, NULL);
 
             if (buf != NULL && *buflen == 0)
               /* Input buffer has been filled */
               return 0;
 
-            /* Input buffer has NOT been filled, we are still in a receive */
+            /*
+             * Input buffer has NOT been filled, we are still in a
+             * receive.  Not a retry, this is the first point we know
+             * for sure for this sequence number.
+             */
             while ((++nextSequence & 0xff) == 0);
             xbeedev_stats_send(xbs, "poll() implies pending RECEIVE",
                                nextSequence,
                                XBEE_STATS_RECEIVE,
-                               nextSequence, &receiveTime);
+                               nextSequence, XBEE_STATS_NOT_RETRY,
+                               &receiveTime);
           }
         }
       }
@@ -946,6 +964,7 @@ static int localAT(struct XBeeBootSession *xbs, char const *detail,
   /* Local AT command 0x08 */
   sendAPIRequest(xbs, 0x08, sequence, -1, -1, -1, -1, -1, -1,
                  detail, -1, XBEE_STATS_FRAME_LOCAL,
+                 XBEE_STATS_NOT_RETRY,
                  length, buf);
 
   int retries;
@@ -993,6 +1012,7 @@ static int sendAT(struct XBeeBootSession *xbs, char const *detail,
                  -1, -1, -1,
                  0x02, -1,
                  detail, -1, XBEE_STATS_FRAME_REMOTE,
+                 XBEE_STATS_NOT_RETRY,
                  length, buf);
 
   int retries;
@@ -1302,10 +1322,14 @@ static int xbeedev_send(union filedescriptor *fdp,
       struct timeval sendTime;
       gettimeofday(&sendTime, NULL);
 
+      /*
+       * Optimistic records should never be treated as retries,
+       * because they might simply be guessing too optimistically.
+       */
       xbeedev_stats_send(xbs, "send() hints possible triggered RECEIVE",
                          nextSequence,
                          XBEE_STATS_RECEIVE,
-                         nextSequence, &sendTime);
+                         nextSequence, 0, &sendTime);
     }
 
     /*
@@ -1334,11 +1358,13 @@ static int xbeedev_send(union filedescriptor *fdp,
     /* Repeatedly send whilst timing out waiting for ACK responses. */
     int retries;
     for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
-      int sendRc = sendPacket(xbs,
-                              "Transmit Request Data, expect ACK for TRANSMIT",
-                              XBEEBOOT_PACKET_TYPE_REQUEST, sequence,
-                              23 /* FIRMWARE_DELIVER */,
-                              blockLength, buf);
+      int sendRc =
+        sendPacket(xbs,
+                   "Transmit Request Data, expect ACK for TRANSMIT",
+                   XBEEBOOT_PACKET_TYPE_REQUEST, sequence,
+                   retries > 0 ? XBEE_STATS_IS_RETRY : XBEE_STATS_NOT_RETRY,
+                   23 /* FIRMWARE_DELIVER */,
+                   blockLength, buf);
       if (sendRc < 0) {
         /* There is no way to recover from a failure mid-send */
         xbs->transportUnusable = 1;
@@ -1363,7 +1389,9 @@ static int xbeedev_send(union filedescriptor *fdp,
                                "Transmit Request ACK [Retry in send] "
                                "for RECEIVE",
                                XBEEBOOT_PACKET_TYPE_ACK,
-                               xbs->inSequence, -1, 0, NULL);
+                               xbs->inSequence,
+                               XBEE_STATS_IS_RETRY,
+                               -1, 0, NULL);
         if (ackRc < 0) {
           /* There is no way to recover from a failure mid-send */
           xbs->transportUnusable = 1;
@@ -1414,10 +1442,16 @@ static int xbeedev_recv(union filedescriptor *fdp,
     struct timeval sendTime;
     gettimeofday(&sendTime, NULL);
 
+    /*
+     * Not a retry - in fact this is the first stage we know for sure
+     * a RECEIVE is due.
+     */
     xbeedev_stats_send(xbs, "recv() implies pending RECEIVE",
                        nextSequence,
                        XBEE_STATS_RECEIVE,
-                       nextSequence, &sendTime);
+                       nextSequence,
+                       XBEE_STATS_NOT_RETRY,
+                       &sendTime);
   }
 
   int retries;
@@ -1436,7 +1470,9 @@ static int xbeedev_recv(union filedescriptor *fdp,
      */
     if (xbs->inSequence != 0)
       sendPacket(xbs, "Transmit Request ACK [Retry in recv] for RECEIVE",
-                 XBEEBOOT_PACKET_TYPE_ACK, xbs->inSequence, -1, 0, NULL);
+                 XBEEBOOT_PACKET_TYPE_ACK, xbs->inSequence,
+                 XBEE_STATS_IS_RETRY,
+                 -1, 0, NULL);
   }
   return -1;
 }
