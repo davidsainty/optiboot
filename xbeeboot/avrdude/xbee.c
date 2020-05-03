@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14124 2020-05-03 05:24:28Z dave $ */
+/* $Id: xbee.c 14126 2020-05-03 06:06:29Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -266,9 +266,9 @@ static void xbeeStatsAdd(struct XBeeStaticticsSummary *summary,
 
 static void xbeeStatsSummarise(struct XBeeStaticticsSummary const *summary)
 {
-  avrdude_message(MSG_NOTICE, "%s: Minimum response time: %lu.%06lu\n",
+  avrdude_message(MSG_NOTICE, "%s:   Minimum response time: %lu.%06lu\n",
                   progname, summary->minimum.tv_sec, summary->minimum.tv_usec);
-  avrdude_message(MSG_NOTICE, "%s: Maximum response time: %lu.%06lu\n",
+  avrdude_message(MSG_NOTICE, "%s:   Maximum response time: %lu.%06lu\n",
                   progname, summary->maximum.tv_sec, summary->maximum.tv_usec);
 
   struct timeval average;
@@ -282,7 +282,7 @@ static void xbeeStatsSummarise(struct XBeeStaticticsSummary const *summary)
   average.tv_sec += usecs / 1000000;
   average.tv_usec = usecs % 1000000;
 
-  avrdude_message(MSG_NOTICE, "%s: Average response time: %lu.%06lu\n",
+  avrdude_message(MSG_NOTICE, "%s:   Average response time: %lu.%06lu\n",
                   progname, average.tv_sec, average.tv_usec);
 }
 
@@ -1614,13 +1614,16 @@ static void xbee_close(PROGRAMMER *pgm)
     xbeeATError(rc);
   }
 
-  avrdude_message(MSG_NOTICE, "%s: Statistics for local requests\n", progname);
+  avrdude_message(MSG_NOTICE, "%s: Statistics for FRAME_LOCAL requests - %s->XBee(local)\n", progname, progname);
   xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_FRAME_LOCAL]);
-  avrdude_message(MSG_NOTICE, "%s: Statistics for remote requests\n", progname);
+
+  avrdude_message(MSG_NOTICE, "%s: Statistics for FRAME_REMOTE requests - %s->XBee(local)->XBee(target)\n", progname, progname);
   xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_FRAME_REMOTE]);
-  avrdude_message(MSG_NOTICE, "%s: Statistics for TX requests\n", progname);
+
+  avrdude_message(MSG_NOTICE, "%s: Statistics for TRANSMIT requests - %s->XBee(local)->XBee(target)->XBeeBoot\n", progname, progname);
   xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_TRANSMIT]);
-  avrdude_message(MSG_NOTICE, "%s: Statistics for RX requests\n", progname);
+
+  avrdude_message(MSG_NOTICE, "%s: Statistics for RECEIVE requests - XBeeBoot->XBee(target)->XBee(local)->%s\n", progname, progname);
   xbeeStatsSummarise(&xbs->groupSummary[XBEE_STATS_RECEIVE]);
 
   xbeedev_free(xbs);
