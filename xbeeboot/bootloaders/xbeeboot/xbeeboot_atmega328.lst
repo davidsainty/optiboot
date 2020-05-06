@@ -11,9 +11,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   3 .stab         00001470  00000000  00000000  00000474  2**2
                   CONTENTS, READONLY, DEBUGGING
-  4 .stabstr      00000f1c  00000000  00000000  000018e4  2**0
+  4 .stabstr      00000f3d  00000000  00000000  000018e4  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .comment      00000011  00000000  00000000  00002800  2**0
+  5 .comment      00000011  00000000  00000000  00002821  2**0
                   CONTENTS, READONLY
 
 Disassembly of section .text:
@@ -30,20 +30,20 @@ Disassembly of section .text:
     7c10:	09 f0       	breq	.+2      	; 0x7c14 <main+0x14>
     7c12:	d9 d1       	rcall	.+946    	; 0x7fc6 <appStart>
     7c14:	82 e0       	ldi	r24, 0x02	; 2
-    7c16:	80 93 c0 00 	sts	0x00C0, r24
+    7c16:	80 93 c0 00 	sts	0x00C0, r24	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
     7c1a:	88 e1       	ldi	r24, 0x18	; 24
-    7c1c:	80 93 c1 00 	sts	0x00C1, r24
+    7c1c:	80 93 c1 00 	sts	0x00C1, r24	; 0x8000c1 <__TEXT_REGION_LENGTH__+0x7e00c1>
     7c20:	86 e0       	ldi	r24, 0x06	; 6
-    7c22:	80 93 c2 00 	sts	0x00C2, r24
+    7c22:	80 93 c2 00 	sts	0x00C2, r24	; 0x8000c2 <__TEXT_REGION_LENGTH__+0x7e00c2>
     7c26:	8f ec       	ldi	r24, 0xCF	; 207
-    7c28:	80 93 c4 00 	sts	0x00C4, r24
+    7c28:	80 93 c4 00 	sts	0x00C4, r24	; 0x8000c4 <__TEXT_REGION_LENGTH__+0x7e00c4>
     7c2c:	89 e2       	ldi	r24, 0x29	; 41
     7c2e:	b6 d1       	rcall	.+876    	; 0x7f9c <watchdogConfig>
     7c30:	8e ef       	ldi	r24, 0xFE	; 254
-    7c32:	80 93 82 02 	sts	0x0282, r24
-    7c36:	10 92 81 02 	sts	0x0281, r1
-    7c3a:	10 92 80 02 	sts	0x0280, r1
-    7c3e:	10 92 83 02 	sts	0x0283, r1
+    7c32:	80 93 82 02 	sts	0x0282, r24	; 0x800282 <_edata+0x182>
+    7c36:	10 92 81 02 	sts	0x0281, r1	; 0x800281 <_edata+0x181>
+    7c3a:	10 92 80 02 	sts	0x0280, r1	; 0x800280 <_edata+0x180>
+    7c3e:	10 92 83 02 	sts	0x0283, r1	; 0x800283 <_edata+0x183>
     7c42:	81 2c       	mov	r8, r1
     7c44:	91 2c       	mov	r9, r1
     7c46:	93 e0       	ldi	r25, 0x03	; 3
@@ -191,11 +191,11 @@ Disassembly of section .text:
 void uartPutch(char ch) {
 #ifndef SOFT_UART
   while (!(UART_SRA & _BV(UDRE0)));
-    7d58:	90 91 c0 00 	lds	r25, 0x00C0
+    7d58:	90 91 c0 00 	lds	r25, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
     7d5c:	95 ff       	sbrs	r25, 5
     7d5e:	fc cf       	rjmp	.-8      	; 0x7d58 <uartPutch>
   UART_UDR = ch;
-    7d60:	80 93 c6 00 	sts	0x00C6, r24
+    7d60:	80 93 c6 00 	sts	0x00C6, r24	; 0x8000c6 <__TEXT_REGION_LENGTH__+0x7e00c6>
     7d64:	08 95       	ret
 
 00007d66 <escPutch>:
@@ -220,14 +220,15 @@ static void escPutch(char ch) {
     uartPutch(0x7d);
     7d7a:	8d e7       	ldi	r24, 0x7D	; 125
     7d7c:	ed df       	rcall	.-38     	; 0x7d58 <uartPutch>
-    7d7e:	80 e2       	ldi	r24, 0x20	; 32
     ch ^= 0x20;
+    7d7e:	80 e2       	ldi	r24, 0x20	; 32
     7d80:	c8 27       	eor	r28, r24
-    7d82:	8c 2f       	mov	r24, r28
   }
   uartPutch(ch);
-    7d84:	cf 91       	pop	r28
+    7d82:	8c 2f       	mov	r24, r28
 }
+    7d84:	cf 91       	pop	r28
+  uartPutch(ch);
     7d86:	e8 cf       	rjmp	.-48     	; 0x7d58 <uartPutch>
 
 00007d88 <transmit>:
@@ -244,109 +245,82 @@ void transmit(const uint8_t length) {
 #define XBEE_TX_OPTIONS 0
   outputBuffer[0] = 0x10; /* ZigBee Transmit Request */
     7d92:	80 e1       	ldi	r24, 0x10	; 16
-    7d94:	80 93 00 04 	sts	0x0400, r24
+    7d94:	80 93 00 04 	sts	0x0400, r24	; 0x800400 <_edata+0x300>
   outputBuffer[1] = 0; /* Delivery sequence */
-    7d98:	10 92 01 04 	sts	0x0401, r1
+    7d98:	10 92 01 04 	sts	0x0401, r1	; 0x800401 <_edata+0x301>
   /* outputBuffer[2..11] = lastAddress */
   outputBuffer[12] = XBEE_BROADCAST_RADIUS; /* Broadcast radius */
-    7d9c:	10 92 0c 04 	sts	0x040C, r1
+    7d9c:	10 92 0c 04 	sts	0x040C, r1	; 0x80040c <_edata+0x30c>
   outputBuffer[13] = XBEE_TX_OPTIONS; /* Options */
-    7da0:	10 92 0d 04 	sts	0x040D, r1
+    7da0:	10 92 0d 04 	sts	0x040D, r1	; 0x80040d <_edata+0x30d>
 
   uartPutch(0x7e);
     7da4:	8e e7       	ldi	r24, 0x7E	; 126
+  escPutch(0); /* Length MSB */
     7da6:	d8 df       	rcall	.-80     	; 0x7d58 <uartPutch>
     7da8:	80 e0       	ldi	r24, 0x00	; 0
-  escPutch(0); /* Length MSB */
+  escPutch(length); /* Length LSB */
     7daa:	dd df       	rcall	.-70     	; 0x7d66 <escPutch>
     7dac:	80 2f       	mov	r24, r16
     7dae:	db df       	rcall	.-74     	; 0x7d66 <escPutch>
-  escPutch(length); /* Length LSB */
-    7db0:	c0 e0       	ldi	r28, 0x00	; 0
-    7db2:	d4 e0       	ldi	r29, 0x04	; 4
-    7db4:	1f ef       	ldi	r17, 0xFF	; 255
 
   uint8_t checksum = 0xff;
   uint8_t index;
+  for (index = 0; index < length; index++) {
+    7db0:	c0 e0       	ldi	r28, 0x00	; 0
+    7db2:	d4 e0       	ldi	r29, 0x04	; 4
+  uint8_t checksum = 0xff;
+    7db4:	1f ef       	ldi	r17, 0xFF	; 255
   for (index = 0; index < length; index++) {
     7db6:	c0 17       	cp	r28, r16
     7db8:	20 f4       	brcc	.+8      	; 0x7dc2 <transmit+0x3a>
-
-  uartPutch(0x7e);
-  escPutch(0); /* Length MSB */
-  escPutch(length); /* Length LSB */
-
-  uint8_t checksum = 0xff;
+    const uint8_t val = outputBuffer[index];
+    checksum -= val;
     7dba:	89 91       	ld	r24, Y+
-  uint8_t index;
-  for (index = 0; index < length; index++) {
+    escPutch(val);
     7dbc:	18 1b       	sub	r17, r24
     7dbe:	d3 df       	rcall	.-90     	; 0x7d66 <escPutch>
-    const uint8_t val = outputBuffer[index];
     7dc0:	fa cf       	rjmp	.-12     	; 0x7db6 <transmit+0x2e>
-    checksum -= val;
-    7dc2:	81 2f       	mov	r24, r17
-    escPutch(val);
-    7dc4:	df 91       	pop	r29
-    7dc6:	cf 91       	pop	r28
-    7dc8:	1f 91       	pop	r17
   }
 
   escPutch(checksum);
-    7dca:	0f 91       	pop	r16
+    7dc2:	81 2f       	mov	r24, r17
 }
+    7dc4:	df 91       	pop	r29
+    7dc6:	cf 91       	pop	r28
+    7dc8:	1f 91       	pop	r17
+  escPutch(checksum);
+    7dca:	0f 91       	pop	r16
     7dcc:	cc cf       	rjmp	.-104    	; 0x7d66 <escPutch>
 
 00007dce <uartGetch>:
-      [uartBit] "I" (UART_RX_BIT)
-    :
-      "r25"
-);
-#else
   while(!(UART_SRA & _BV(RXC0)))
-    7dce:	80 91 c0 00 	lds	r24, 0x00C0
+    7dce:	80 91 c0 00 	lds	r24, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
     7dd2:	87 ff       	sbrs	r24, 7
     7dd4:	fc cf       	rjmp	.-8      	; 0x7dce <uartGetch>
-    ;
   if (!(UART_SRA & _BV(FE0))) {
-    7dd6:	80 91 c0 00 	lds	r24, 0x00C0
+    7dd6:	80 91 c0 00 	lds	r24, 0x00C0	; 0x8000c0 <__TEXT_REGION_LENGTH__+0x7e00c0>
     7dda:	84 fd       	sbrc	r24, 4
-    7ddc:	01 c0       	rjmp	.+2      	; 0x7de0 <uartGetch+0x12>
 }
 #endif
 
 // Watchdog functions. These are only safe with interrupts turned off.
 void watchdogReset() {
   __asm__ __volatile__ (
-    7dde:	a8 95       	wdr
-       * don't care that an invalid char is returned...)
-       */
-    watchdogReset();
-  }
-
+    7ddc:	01 c0       	rjmp	.+2      	; 0x7de0 <uartGetch+0x12>
   ch = UART_UDR;
-    7de0:	80 91 c6 00 	lds	r24, 0x00C6
-  LED_PIN |= _BV(LED);
-#endif
-#endif
-
-  return ch;
+    7dde:	a8 95       	wdr
 }
+    7de0:	80 91 c6 00 	lds	r24, 0x00C6	; 0x8000c6 <__TEXT_REGION_LENGTH__+0x7e00c6>
     7de4:	08 95       	ret
 
 00007de6 <escGetch>:
-}
-#endif
-
-static __attribute__((__noinline__))
-uint8_t escGetch(void) {
   const uint8_t ch = uartGetch();
     7de6:	f3 df       	rcall	.-26     	; 0x7dce <uartGetch>
     7de8:	8d 37       	cpi	r24, 0x7D	; 125
   if (ch != 0x7d)
     7dea:	21 f4       	brne	.+8      	; 0x7df4 <escGetch+0xe>
     7dec:	f0 df       	rcall	.-32     	; 0x7dce <uartGetch>
-    return ch;
   return 0x20 ^ uartGetch();
     7dee:	90 e2       	ldi	r25, 0x20	; 32
     7df0:	98 27       	eor	r25, r24
@@ -356,368 +330,228 @@ uint8_t escGetch(void) {
     7df8:	08 95       	ret
 
 00007dfa <poll>:
-  outputPayload[1] = sequence;
-  transmit(TXHEADER_BYTES + 2);
-}
-
-static __attribute__((__noinline__))
 uint8_t poll(uint8_t waitForAck) {
     7dfa:	ef 92       	push	r14
     7dfc:	ff 92       	push	r15
     7dfe:	0f 93       	push	r16
     7e00:	1f 93       	push	r17
     7e02:	cf 93       	push	r28
-    7e04:	df 93       	push	r29
-    7e06:	f8 2e       	mov	r15, r24
   register uint8_t sawInvalid = 0;
-    7e08:	10 e0       	ldi	r17, 0x00	; 0
-  for (;;) {
-    /* Start delimiter */
+    7e04:	df 93       	push	r29
     if (uartGetch() != 0x7e)
+    7e06:	f8 2e       	mov	r15, r24
+    7e08:	10 e0       	ldi	r17, 0x00	; 0
     7e0a:	e1 df       	rcall	.-62     	; 0x7dce <uartGetch>
     7e0c:	8e 37       	cpi	r24, 0x7E	; 126
+    if (escGetch() != 0)
     7e0e:	e9 f7       	brne	.-6      	; 0x7e0a <poll+0x10>
     7e10:	ea df       	rcall	.-44     	; 0x7de6 <escGetch>
-      continue;
-
-    /* Length MSB (of the data) */
-    if (escGetch() != 0)
     7e12:	81 11       	cpse	r24, r1
     7e14:	fa cf       	rjmp	.-12     	; 0x7e0a <poll+0x10>
+    const uint8_t length = escGetch();
     7e16:	e7 df       	rcall	.-50     	; 0x7de6 <escGetch>
     7e18:	08 2f       	mov	r16, r24
-      continue;
-
-    /* Length LSB (of the data) */
-    const uint8_t length = escGetch();
+    for (index = 0; index < length; index++) {
     7e1a:	c0 e8       	ldi	r28, 0x80	; 128
     7e1c:	d3 e0       	ldi	r29, 0x03	; 3
+    register uint8_t checksum = 0xff;
     7e1e:	ee 24       	eor	r14, r14
-     * 12 = data...
-     */
-#define PACKOFF_ADDRESS 1
-#define PACKOFF_PAYLOAD 12
-    uint8_t index;
-    for (index = 0; index < length; index++) {
     7e20:	ea 94       	dec	r14
     7e22:	8c 2f       	mov	r24, r28
-    /* Length LSB (of the data) */
-    const uint8_t length = escGetch();
-    /* Assume the length reaches the next check. */
-    /* if (length < 12) continue; */
-
-    register uint8_t checksum = 0xff;
+    for (index = 0; index < length; index++) {
     7e24:	80 58       	subi	r24, 0x80	; 128
     7e26:	80 17       	cp	r24, r16
+      uint8_t dataByte = escGetch();
     7e28:	20 f4       	brcc	.+8      	; 0x7e32 <poll+0x38>
     7e2a:	dd df       	rcall	.-70     	; 0x7de6 <escGetch>
-     * 12 = data...
-     */
-#define PACKOFF_ADDRESS 1
-#define PACKOFF_PAYLOAD 12
-    uint8_t index;
-    for (index = 0; index < length; index++) {
-    7e2c:	89 93       	st	Y+, r24
-    7e2e:	e8 1a       	sub	r14, r24
-      uint8_t dataByte = escGetch();
-    7e30:	f8 cf       	rjmp	.-16     	; 0x7e22 <poll+0x28>
-    7e32:	d9 df       	rcall	.-78     	; 0x7de6 <escGetch>
       packet[index] = dataByte;
-    7e34:	e8 12       	cpse	r14, r24
+    7e2c:	89 93       	st	Y+, r24
       checksum -= dataByte;
-    7e36:	e9 cf       	rjmp	.-46     	; 0x7e0a <poll+0x10>
-    7e38:	80 91 80 03 	lds	r24, 0x0380
-    }
-
+    7e2e:	e8 1a       	sub	r14, r24
+    7e30:	f8 cf       	rjmp	.-16     	; 0x7e22 <poll+0x28>
     if (checksum != escGetch())
+    7e32:	d9 df       	rcall	.-78     	; 0x7de6 <escGetch>
+    7e34:	e8 12       	cpse	r14, r24
+    7e36:	e9 cf       	rjmp	.-46     	; 0x7e0a <poll+0x10>
+    7e38:	80 91 80 03 	lds	r24, 0x0380	; 0x800380 <_edata+0x280>
+    if (packet[0] != 0x90)
     7e3c:	80 39       	cpi	r24, 0x90	; 144
     7e3e:	29 f7       	brne	.-54     	; 0x7e0a <poll+0x10>
-    7e40:	80 91 8c 03 	lds	r24, 0x038C
-      /* Checksum mismatch */
-      continue;
-
-    if (packet[0] != 0x90)
-    7e44:	c0 91 8d 03 	lds	r28, 0x038D
-    7e48:	0e 30       	cpi	r16, 0x0E	; 14
-      continue;
-
-    /* [REQUEST = 1] [SEQUENCE] [FIRMWARE = 23] [DATA...] */
-    /* [ACK = 0] [SEQUENCE] */
-
+    7e40:	80 91 8c 03 	lds	r24, 0x038C	; 0x80038c <_edata+0x28c>
     const uint8_t packetType = packet[PACKOFF_PAYLOAD];
+    7e44:	c0 91 8d 03 	lds	r28, 0x038D	; 0x80038d <_edata+0x28d>
+    const uint8_t sequence = packet[PACKOFF_PAYLOAD + 1];
+    7e48:	0e 30       	cpi	r16, 0x0E	; 14
+    if (length == PACKOFF_PAYLOAD + 2) {
     7e4a:	61 f4       	brne	.+24     	; 0x7e64 <poll+0x6a>
     7e4c:	ff 20       	and	r15, r15
-    const uint8_t sequence = packet[PACKOFF_PAYLOAD + 1];
+      if (!waitForAck)
     7e4e:	e9 f2       	breq	.-70     	; 0x7e0a <poll+0x10>
     7e50:	81 11       	cpse	r24, r1
-
-    if (length == PACKOFF_PAYLOAD + 2) {
+      if (packetType != 0)
     7e52:	db cf       	rjmp	.-74     	; 0x7e0a <poll+0x10>
     7e54:	fc 12       	cpse	r15, r28
-      if (!waitForAck)
+      if (waitForAck == sequence)
     7e56:	02 c0       	rjmp	.+4      	; 0x7e5c <poll+0x62>
     7e58:	80 e0       	ldi	r24, 0x00	; 0
-        /* We can't receive ACK right now, drop it. */
-        continue;
-
-      if (packetType != 0)
+        return 0;
     7e5a:	40 c0       	rjmp	.+128    	; 0x7edc <poll+0xe2>
     7e5c:	11 11       	cpse	r17, r1
-        /* ACK */
-        continue;
-
-      /* sequence is ACK'd */
-      if (waitForAck == sequence)
+      if (sawInvalid++)
     7e5e:	3d c0       	rjmp	.+122    	; 0x7eda <poll+0xe0>
     7e60:	11 e0       	ldi	r17, 0x01	; 1
-        return 0;
+uint8_t poll(uint8_t waitForAck) {
     7e62:	d3 cf       	rjmp	.-90     	; 0x7e0a <poll+0x10>
     7e64:	00 31       	cpi	r16, 0x10	; 16
-
-      if (sawInvalid++)
+    } else if (length >= PACKOFF_PAYLOAD + 4) {
     7e66:	88 f2       	brcs	.-94     	; 0x7e0a <poll+0x10>
     7e68:	81 30       	cpi	r24, 0x01	; 1
-  outputPayload[1] = sequence;
-  transmit(TXHEADER_BYTES + 2);
-}
-
-static __attribute__((__noinline__))
-uint8_t poll(uint8_t waitForAck) {
-    7e6a:	79 f6       	brne	.-98     	; 0x7e0a <poll+0x10>
-    7e6c:	80 91 8e 03 	lds	r24, 0x038E
-      if (sawInvalid++)
-        /* Wrong ACK twice */
-        return 1;
-
-      continue;
-    } else if (length >= PACKOFF_PAYLOAD + 4) {
-    7e70:	87 31       	cpi	r24, 0x17	; 23
-      /* [REQUEST] [SEQUENCE] [FIRMWARE_DELIVER] [DATA] [[DATA]*] */
-
       if (packetType != 1)
+    7e6a:	79 f6       	brne	.-98     	; 0x7e0a <poll+0x10>
+    7e6c:	80 91 8e 03 	lds	r24, 0x038E	; 0x80038e <_edata+0x28e>
+      if (type != 23)
+    7e70:	87 31       	cpi	r24, 0x17	; 23
     7e72:	59 f6       	brne	.-106    	; 0x7e0a <poll+0x10>
     7e74:	a2 e0       	ldi	r26, 0x02	; 2
-        /* REQUEST */
-        continue;
-
-      const uint8_t type = packet[PACKOFF_PAYLOAD + 2];
-      if (type != 23)
     7e76:	b4 e0       	ldi	r27, 0x04	; 4
     7e78:	e1 e8       	ldi	r30, 0x81	; 129
     7e7a:	f3 e0       	ldi	r31, 0x03	; 3
     7e7c:	81 91       	ld	r24, Z+
+          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
     7e7e:	8d 93       	st	X+, r24
     7e80:	eb 38       	cpi	r30, 0x8B	; 139
+        for (index = 0; index < 10; index++)
     7e82:	83 e0       	ldi	r24, 0x03	; 3
     7e84:	f8 07       	cpc	r31, r24
-        continue;
-
-      {
-        uint8_t index;
-        for (index = 0; index < 10; index++)
-          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
     7e86:	d1 f7       	brne	.-12     	; 0x7e7c <poll+0x82>
-    7e88:	80 91 80 02 	lds	r24, 0x0280
-        /* FIRMWARE_DELIVER */
-        continue;
-
-      {
-        uint8_t index;
-        for (index = 0; index < 10; index++)
+    7e88:	80 91 80 02 	lds	r24, 0x0280	; 0x800280 <_edata+0x180>
+      uint8_t nextSequence = lastSequence;
     7e8c:	98 2f       	mov	r25, r24
+      while ((++nextSequence & 0xff) == 0);
     7e8e:	9f 5f       	subi	r25, 0xFF	; 255
     7e90:	f1 f3       	breq	.-4      	; 0x7e8e <poll+0x94>
-          lastAddress[index] = packet[PACKOFF_ADDRESS + index];
-      }
-
-      uint8_t lastSequence = lastIncomingSequence;
+      if (sequence != nextSequence) {
     7e92:	c9 17       	cp	r28, r25
     7e94:	29 f0       	breq	.+10     	; 0x7ea0 <poll+0xa6>
-      uint8_t nextSequence = lastSequence;
+        if (sawInvalid++)
     7e96:	11 23       	and	r17, r17
-      while ((++nextSequence & 0xff) == 0);
     7e98:	19 f3       	breq	.-58     	; 0x7e60 <poll+0x66>
     7e9a:	1f 5f       	subi	r17, 0xFF	; 255
-
-      if (sequence != nextSequence) {
+          sendAck(lastSequence);
     7e9c:	9a d0       	rcall	.+308    	; 0x7fd2 <sendAck>
     7e9e:	b5 cf       	rjmp	.-150    	; 0x7e0a <poll+0x10>
-        /* Wrong sequence */
-        if (sawInvalid++)
-    7ea0:	80 91 82 02 	lds	r24, 0x0282
+    7ea0:	80 91 82 02 	lds	r24, 0x0282	; 0x800282 <_edata+0x182>
+      if (frameMode != FRAME_FRAME)
     7ea4:	81 11       	cpse	r24, r1
-          sendAck(lastSequence);
     7ea6:	b1 cf       	rjmp	.-158    	; 0x7e0a <poll+0x10>
     7ea8:	0f 50       	subi	r16, 0x0F	; 15
+        uint8_t dataLength = length - PACKOFF_PAYLOAD - 3;
     7eaa:	ef e8       	ldi	r30, 0x8F	; 143
-        continue;
-      }
-
-      if (frameMode != FRAME_FRAME)
     7eac:	f3 e0       	ldi	r31, 0x03	; 3
     7eae:	20 2f       	mov	r18, r16
     7eb0:	30 e0       	ldi	r19, 0x00	; 0
     7eb2:	21 57       	subi	r18, 0x71	; 113
-         */
-        continue;
-
-      {
-        uint8_t index;
-        uint8_t dataLength = length - PACKOFF_PAYLOAD - 3;
     7eb4:	39 4f       	sbci	r19, 0xF9	; 249
     7eb6:	81 91       	ld	r24, Z+
+            packet[PACKOFF_PAYLOAD + 3 + index];
     7eb8:	d9 01       	movw	r26, r18
     7eba:	ae 1b       	sub	r26, r30
     7ebc:	bf 0b       	sbc	r27, r31
+          packetBuffer[dataLength - 1 - index] =
     7ebe:	8c 93       	st	X, r24
     7ec0:	81 e7       	ldi	r24, 0x71	; 113
-        for (index = 0; index < dataLength; index++)
-          packetBuffer[dataLength - 1 - index] =
-            packet[PACKOFF_PAYLOAD + 3 + index];
     7ec2:	8e 0f       	add	r24, r30
+        for (index = 0; index < dataLength; index++)
     7ec4:	80 17       	cp	r24, r16
     7ec6:	b8 f3       	brcs	.-18     	; 0x7eb6 <poll+0xbc>
-    7ec8:	00 93 82 02 	sts	0x0282, r16
-
-      {
-        uint8_t index;
-        uint8_t dataLength = length - PACKOFF_PAYLOAD - 3;
-        for (index = 0; index < dataLength; index++)
-          packetBuffer[dataLength - 1 - index] =
+        frameMode = dataLength;
+    7ec8:	00 93 82 02 	sts	0x0282, r16	; 0x800282 <_edata+0x182>
+      sendAck(nextSequence);
     7ecc:	8c 2f       	mov	r24, r28
     7ece:	81 d0       	rcall	.+258    	; 0x7fd2 <sendAck>
-        continue;
-
-      {
-        uint8_t index;
-        uint8_t dataLength = length - PACKOFF_PAYLOAD - 3;
-        for (index = 0; index < dataLength; index++)
-    7ed0:	c0 93 80 02 	sts	0x0280, r28
-          packetBuffer[dataLength - 1 - index] =
-            packet[PACKOFF_PAYLOAD + 3 + index];
-        frameMode = dataLength;
+    7ed0:	c0 93 80 02 	sts	0x0280, r28	; 0x800280 <_edata+0x180>
+      lastIncomingSequence = nextSequence;
     7ed4:	f1 10       	cpse	r15, r1
+      if (!waitForAck) {
     7ed6:	99 cf       	rjmp	.-206    	; 0x7e0a <poll+0x10>
-      }
-
-      sendAck(nextSequence);
     7ed8:	bf cf       	rjmp	.-130    	; 0x7e58 <poll+0x5e>
     7eda:	81 e0       	ldi	r24, 0x01	; 1
+        return 1;
     7edc:	df 91       	pop	r29
-
-      /* data is valid, sequence is correct. */
-      lastIncomingSequence = nextSequence;
+}
     7ede:	cf 91       	pop	r28
     7ee0:	1f 91       	pop	r17
-
-      if (!waitForAck) {
     7ee2:	0f 91       	pop	r16
     7ee4:	ff 90       	pop	r15
     7ee6:	ef 90       	pop	r14
-      if (waitForAck == sequence)
-        return 0;
-
-      if (sawInvalid++)
-        /* Wrong ACK twice */
-        return 1;
     7ee8:	08 95       	ret
 
 00007eea <pushBuffer>:
-    }
-  }
-}
-
-static __attribute__((noinline)) 
 void pushBuffer(const uint8_t max) {
     7eea:	1f 93       	push	r17
     7eec:	cf 93       	push	r28
     7eee:	df 93       	push	r29
   if (outputIndex <= max)
-    7ef0:	90 91 83 02 	lds	r25, 0x0283
+    7ef0:	90 91 83 02 	lds	r25, 0x0283	; 0x800283 <_edata+0x183>
     7ef4:	89 17       	cp	r24, r25
     7ef6:	c0 f4       	brcc	.+48     	; 0x7f28 <pushBuffer+0x3e>
-    return;
-
   uint8_t sequence = lastOutgoingSequence;
-    7ef8:	c0 91 81 02 	lds	r28, 0x0281
+    7ef8:	c0 91 81 02 	lds	r28, 0x0281	; 0x800281 <_edata+0x181>
   while ((++sequence & 0xff) == 0);
     7efc:	cf 5f       	subi	r28, 0xFF	; 255
+  lastOutgoingSequence = sequence;
     7efe:	f1 f3       	breq	.-4      	; 0x7efc <pushBuffer+0x12>
-  lastOutgoingSequence = sequence;
-    7f00:	c0 93 81 02 	sts	0x0281, r28
-
-  do {
     outputPayload[0] = 1 /* REQUEST */;
+    7f00:	c0 93 81 02 	sts	0x0281, r28	; 0x800281 <_edata+0x181>
     7f04:	11 e0       	ldi	r17, 0x01	; 1
-    outputPayload[1] = sequence;
-    outputPayload[2] = 24 /* FIRMWARE_REPLY */;
     7f06:	d8 e1       	ldi	r29, 0x18	; 24
-  uint8_t sequence = lastOutgoingSequence;
-  while ((++sequence & 0xff) == 0);
-  lastOutgoingSequence = sequence;
-
-  do {
-    outputPayload[0] = 1 /* REQUEST */;
-    7f08:	10 93 0e 04 	sts	0x040E, r17
     outputPayload[1] = sequence;
-    7f0c:	c0 93 0f 04 	sts	0x040F, r28
+    7f08:	10 93 0e 04 	sts	0x040E, r17	; 0x80040e <_edata+0x30e>
     outputPayload[2] = 24 /* FIRMWARE_REPLY */;
-    7f10:	d0 93 10 04 	sts	0x0410, r29
+    7f0c:	c0 93 0f 04 	sts	0x040F, r28	; 0x80040f <_edata+0x30f>
     transmit(TXHEADER_BYTES + 3 + outputIndex);
-    7f14:	80 91 83 02 	lds	r24, 0x0283
+    7f10:	d0 93 10 04 	sts	0x0410, r29	; 0x800410 <_edata+0x310>
+    7f14:	80 91 83 02 	lds	r24, 0x0283	; 0x800283 <_edata+0x183>
+  } while (poll(sequence));
     7f18:	8f 5e       	subi	r24, 0xEF	; 239
     7f1a:	36 df       	rcall	.-404    	; 0x7d88 <transmit>
     7f1c:	8c 2f       	mov	r24, r28
-  } while (poll(sequence));
     7f1e:	6d df       	rcall	.-294    	; 0x7dfa <poll>
     7f20:	81 11       	cpse	r24, r1
-    7f22:	f2 cf       	rjmp	.-28     	; 0x7f08 <pushBuffer+0x1e>
-    7f24:	10 92 83 02 	sts	0x0283, r1
-
   outputIndex = 0;
+    7f22:	f2 cf       	rjmp	.-28     	; 0x7f08 <pushBuffer+0x1e>
+    7f24:	10 92 83 02 	sts	0x0283, r1	; 0x800283 <_edata+0x183>
+}
     7f28:	df 91       	pop	r29
     7f2a:	cf 91       	pop	r28
-}
     7f2c:	1f 91       	pop	r17
     7f2e:	08 95       	ret
 
 00007f30 <putch>:
-
-void putch(const char ch) {
   if (frameMode == FRAME_UART) {
-    7f30:	90 91 82 02 	lds	r25, 0x0282
+    7f30:	90 91 82 02 	lds	r25, 0x0282	; 0x800282 <_edata+0x182>
     7f34:	9d 3f       	cpi	r25, 0xFD	; 253
-    7f36:	09 f4       	brne	.+2      	; 0x7f3a <putch+0xa>
     uartPutch(ch);
+    7f36:	09 f4       	brne	.+2      	; 0x7f3a <putch+0xa>
     7f38:	0f cf       	rjmp	.-482    	; 0x7d58 <uartPutch>
-    7f3a:	e0 91 83 02 	lds	r30, 0x0283
-    return;
-  }
-
   outputText[outputIndex++] = ch;
+    7f3a:	e0 91 83 02 	lds	r30, 0x0283	; 0x800283 <_edata+0x183>
     7f3e:	91 e0       	ldi	r25, 0x01	; 1
     7f40:	9e 0f       	add	r25, r30
-    7f42:	90 93 83 02 	sts	0x0283, r25
+    7f42:	90 93 83 02 	sts	0x0283, r25	; 0x800283 <_edata+0x183>
     7f46:	f0 e0       	ldi	r31, 0x00	; 0
     7f48:	ef 5e       	subi	r30, 0xEF	; 239
+  pushBuffer(64);
     7f4a:	fb 4f       	sbci	r31, 0xFB	; 251
     7f4c:	80 83       	st	Z, r24
     7f4e:	80 e4       	ldi	r24, 0x40	; 64
-  pushBuffer(64);
     7f50:	cc cf       	rjmp	.-104    	; 0x7eea <pushBuffer>
 
 00007f52 <getch>:
-/*
- * main() does a getch() before a putch(), so we can determine the
- * protocol here first.
- */
-uint8_t getch(void) {
   pushBuffer(0);
     7f52:	80 e0       	ldi	r24, 0x00	; 0
     7f54:	ca df       	rcall	.-108    	; 0x7eea <pushBuffer>
-    7f56:	80 91 82 02 	lds	r24, 0x0282
-
- loop:
+    7f56:	80 91 82 02 	lds	r24, 0x0282	; 0x800282 <_edata+0x182>
   switch (frameMode) {
     7f5a:	8d 3f       	cpi	r24, 0xFD	; 253
     7f5c:	29 f0       	breq	.+10     	; 0x7f68 <getch+0x16>
@@ -726,51 +560,36 @@ uint8_t getch(void) {
     7f62:	81 11       	cpse	r24, r1
     7f64:	12 c0       	rjmp	.+36     	; 0x7f8a <getch+0x38>
     7f66:	0f c0       	rjmp	.+30     	; 0x7f86 <getch+0x34>
-    7f68:	32 cf       	rjmp	.-412    	; 0x7dce <uartGetch>
-  case FRAME_UART:
     return uartGetch();
+    7f68:	32 cf       	rjmp	.-412    	; 0x7dce <uartGetch>
     7f6a:	31 df       	rcall	.-414    	; 0x7dce <uartGetch>
-    7f6c:	8e 37       	cpi	r24, 0x7E	; 126
-  case FRAME_UNKNOWN:
-    {
       uint8_t ch = uartGetch();
+    7f6c:	8e 37       	cpi	r24, 0x7E	; 126
     7f6e:	49 f0       	breq	.+18     	; 0x7f82 <getch+0x30>
-    7f70:	80 39       	cpi	r24, 0x90	; 144
       switch (ch) {
+    7f70:	80 39       	cpi	r24, 0x90	; 144
     7f72:	39 f0       	breq	.+14     	; 0x7f82 <getch+0x30>
     7f74:	80 33       	cpi	r24, 0x30	; 48
     7f76:	79 f7       	brne	.-34     	; 0x7f56 <getch+0x4>
     7f78:	8d ef       	ldi	r24, 0xFD	; 253
-    7f7a:	80 93 82 02 	sts	0x0282, r24
-      case 0x30:
-        /* Cmnd_STK_GET_SYNC */
+    7f7a:	80 93 82 02 	sts	0x0282, r24	; 0x800282 <_edata+0x182>
         frameMode = FRAME_UART;
     7f7e:	80 e3       	ldi	r24, 0x30	; 48
+      uint8_t ch = uartGetch();
     7f80:	08 95       	ret
-    7f82:	10 92 82 02 	sts	0x0282, r1
         return ch;
-    7f86:	80 e0       	ldi	r24, 0x00	; 0
-         * matching a 0x30 go up.  In particular, the first 0x90
-         * packet we see is almost certainly delivering a 0x30 in its
-         * payload.
-         */
-
+    7f82:	10 92 82 02 	sts	0x0282, r1	; 0x800282 <_edata+0x182>
         frameMode = FRAME_FRAME;
-    7f88:	38 df       	rcall	.-400    	; 0x7dfa <poll>
-    7f8a:	e0 91 82 02 	lds	r30, 0x0282
-  case FRAME_FRAME:
-    /*
-     * NB: Will not return unless the packet buffer has been
-     * re-populated, so we can then immediately read from the buffer.
-     */
+    7f86:	80 e0       	ldi	r24, 0x00	; 0
     poll(0);
-    7f8e:	e1 50       	subi	r30, 0x01	; 1
-    7f90:	e0 93 82 02 	sts	0x0282, r30
-    /* FALLTHROUGH */
-  default:
+    7f88:	38 df       	rcall	.-400    	; 0x7dfa <poll>
+    7f8a:	e0 91 82 02 	lds	r30, 0x0282	; 0x800282 <_edata+0x182>
     return packetBuffer[--frameMode];
+    7f8e:	e1 50       	subi	r30, 0x01	; 1
+    7f90:	e0 93 82 02 	sts	0x0282, r30	; 0x800282 <_edata+0x182>
     7f94:	f0 e0       	ldi	r31, 0x00	; 0
     7f96:	fd 5f       	subi	r31, 0xFD	; 253
+}
     7f98:	80 81       	ld	r24, Z
     7f9a:	08 95       	ret
 
@@ -790,11 +609,6 @@ void watchdogConfig(uint8_t x) {
     7fa6:	08 95       	ret
 
 00007fa8 <verifySpace>:
-  do getch(); while (--count);
-  verifySpace();
-}
-
-void verifySpace() {
   if (getch() != CRC_EOP) {
     7fa8:	d4 df       	rcall	.-88     	; 0x7f52 <getch>
     7faa:	80 32       	cpi	r24, 0x20	; 32
@@ -807,11 +621,6 @@ void verifySpace() {
     7fb6:	bc cf       	rjmp	.-136    	; 0x7f30 <putch>
 
 00007fb8 <getNch>:
-  default:
-    return packetBuffer[--frameMode];
-  }
-}
-
 void getNch(uint8_t count) {
     7fb8:	cf 93       	push	r28
     7fba:	c8 2f       	mov	r28, r24
@@ -820,7 +629,6 @@ void getNch(uint8_t count) {
     7fbe:	c1 50       	subi	r28, 0x01	; 1
     7fc0:	e9 f7       	brne	.-6      	; 0x7fbc <getNch+0x4>
     7fc2:	cf 91       	pop	r28
-  verifySpace();
 }
     7fc4:	f1 cf       	rjmp	.-30     	; 0x7fa8 <verifySpace>
 
@@ -833,15 +641,10 @@ void getNch(uint8_t count) {
     7fd0:	09 94       	ijmp
 
 00007fd2 <sendAck>:
-  escPutch(checksum);
-}
-
-static __attribute__((__noinline__))
-void sendAck(const uint8_t sequence) {
   outputPayload[0] = 0 /* ACK */;
-    7fd2:	10 92 0e 04 	sts	0x040E, r1
+    7fd2:	10 92 0e 04 	sts	0x040E, r1	; 0x80040e <_edata+0x30e>
   outputPayload[1] = sequence;
-    7fd6:	80 93 0f 04 	sts	0x040F, r24
+    7fd6:	80 93 0f 04 	sts	0x040F, r24	; 0x80040f <_edata+0x30f>
   transmit(TXHEADER_BYTES + 2);
     7fda:	80 e1       	ldi	r24, 0x10	; 16
     7fdc:	d5 ce       	rjmp	.-598    	; 0x7d88 <transmit>
