@@ -263,7 +263,7 @@ virboot328_isp: HFUSE ?= DF
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 virboot328_isp: LFUSE ?= FF
 # 2.7V brownout
-virboot328_isp: EFUSE ?= 05
+virboot328_isp: EFUSE ?= FD
 virboot328_isp: isp
 
 
@@ -284,8 +284,8 @@ atmega168_isp: TARGET = atmega168
 atmega168_isp: HFUSE ?= DD
 # Full swing (16MHz) 16KCK/14CK+65ms
 atmega168_isp: LFUSE ?= F7
-# 512 byte boot
-atmega168_isp: EFUSE ?= 04
+# 1024byte boot
+atmega168_isp: EFUSE ?= FA
 atmega168_isp: isp
 
 atmega328: TARGET = atmega328
@@ -305,7 +305,7 @@ atmega328_isp: HFUSE ?= DC
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_isp: LFUSE ?= FF
 # 2.7V brownout
-atmega328_isp: EFUSE ?= 05
+atmega328_isp: EFUSE ?= FD
 atmega328_isp: isp
 
 #Atmega1280
@@ -364,7 +364,7 @@ pro20_isp: HFUSE ?= DC
 # Full swing xtal (20MHz) 258CK/14CK+4.1ms
 pro20_isp: LFUSE ?= F7
 # 512 byte boot
-pro20_isp: EFUSE ?= 04
+pro20_isp: EFUSE ?= FC
 pro20_isp: isp
 
 # 16MHz clocked platforms
@@ -386,7 +386,7 @@ pro16_isp: HFUSE ?= DD
 # Full swing xtal (20MHz) 258CK/14CK+4.1ms
 pro16_isp: LFUSE ?= F7
 # 512 byte boot
-pro16_isp: EFUSE ?= 04
+pro16_isp: EFUSE ?= FC
 pro16_isp: isp
 
 diecimila: TARGET = diecimila
@@ -403,7 +403,7 @@ diecimila_isp: HFUSE ?= DD
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 diecimila_isp: LFUSE ?= F7
 # 512 byte boot
-diecimila_isp: EFUSE ?= 04
+diecimila_isp: EFUSE ?= FC
 diecimila_isp: isp
 
 # MEGA1280 Board (this is different from the atmega1280 chip platform)
@@ -445,7 +445,7 @@ lilypad_isp: HFUSE ?= DD
 # Internal 8MHz osc (8MHz) Slow rising power
 lilypad_isp: LFUSE ?= E2
 # 512 byte boot
-lilypad_isp: EFUSE ?= 04
+lilypad_isp: EFUSE ?= FC
 lilypad_isp: isp
 
 # lilypad_resonator is the same as a 8MHz lilypad, except for fuses.
@@ -458,7 +458,7 @@ lilypad_resonator_isp: HFUSE ?= DD
 # Full swing xtal (20MHz) 258CK/14CK+4.1ms
 lilypad_resonator_isp: LFUSE ?= C6
 # 512 byte boot
-lilypad_resonator_isp: EFUSE ?= 04
+lilypad_resonator_isp: EFUSE ?= FC
 lilypad_resonator_isp: isp
 
 pro8: TARGET = pro_8MHz
@@ -475,7 +475,7 @@ pro8_isp: HFUSE ?= DD
 # Full swing xtal (20MHz) 258CK/14CK+4.1ms
 pro8_isp: LFUSE ?= C6
 # 512 byte boot
-pro8_isp: EFUSE ?= 04
+pro8_isp: EFUSE ?= FC
 pro8_isp: isp
 
 atmega328_pro8: TARGET = atmega328_pro_8MHz
@@ -493,7 +493,7 @@ atmega328_pro8_isp: HFUSE ?= DC
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_pro8_isp: LFUSE ?= FF
 # 2.7V brownout
-atmega328_pro8_isp: EFUSE ?= 05
+atmega328_pro8_isp: EFUSE ?= FD
 atmega328_pro8_isp: isp
 
 #
