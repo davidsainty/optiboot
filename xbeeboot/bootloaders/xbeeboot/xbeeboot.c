@@ -399,6 +399,35 @@ void appStart(uint8_t rstFlags) __attribute__ ((naked));
 #define FRAME_UART 0xfd
 #define FRAME_FRAME 0
 
+/*
+ * Maximum chunk size, which is the maximum encapsulated payload to be
+ * delivered to the remote programmer.
+ *
+ * There is an additional overhead of 3 bytes encapsulation, one
+ * "REQUEST" byte, one sequence number byte, and one
+ * "FIRMWARE_REPLY" request type.
+ *
+ * The ZigBee maximum (unfragmented) payload is 84 bytes.  Source
+ * routing decreases that by two bytes overhead, plus two bytes per
+ * hop.  Maximum hop support is for 11 or 25 hops depending on
+ * firmware.
+ *
+ * Network layer encryption decreases the maximum payload by 18 bytes.
+ * APS end-to-end encryption decreases the maximum payload by 9 bytes.
+ * Both these layers are available in concert, as seen in the section
+ * "Network and APS layer encryption", decreasing our maximum payload
+ * by both 18 bytes and 9 bytes.
+ *
+ * Our maximum payload size should therefore ideally be 84 - 18 - 9 =
+ * 57 bytes, and therefore a chunk size of 54 bytes for zero hops.
+ *
+ * Source: XBee X2C manual: "Maximum RF payload size" section for most
+ * details; "Network layer encryption and decryption" section for the
+ * reference to 18 bytes of overhead; and "Enable APS encryption" for
+ * the reference to 9 bytes of overhead.
+ */
+#define XBEEBOOT_MAX_CHUNK 54
+
 #define lastIncomingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+0))
 #define lastOutgoingSequence (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+1))
 #define frameMode (*(uint8_t*)(RAMSTART+SPM_PAGESIZE*3+2))
@@ -1030,7 +1059,7 @@ void putch(const char ch) {
   }
 
   outputText[outputIndex++] = ch;
-  pushBuffer(64);
+  pushBuffer(XBEEBOOT_MAX_CHUNK);
 }
 
 /*
