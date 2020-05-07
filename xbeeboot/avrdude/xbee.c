@@ -124,7 +124,7 @@ static int xbee_read_sig_bytes(PROGRAMMER *pgm, AVRPART *p, AVRMEM *m)
   /* Signature byte reads are always 3 bytes. */
 
   if (m->size < 3) {
-    avrdude_message(MSG_INFO, "%s: memsize too small for sig byte read",
+    avrdude_message(MSG_INFO, "%s: memsize too small for sig byte read\n",
                     progname);
     return -1;
   }
@@ -746,7 +746,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
                  xbs->xbee_address, XBEE_ADDRESS_64BIT_LEN) != 0) {
         /* Not from our target device */
         avrdude_message(MSG_NOTICE2, "%s: xbeedev_poll(): "
-                        "Route Record Indicator from other XBee");
+                        "Route Record Indicator from other XBee\n");
         continue;
       }
 
@@ -901,7 +901,7 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
                   xbs->inInIndex = 0;
                 if (xbs->inInIndex == xbs->inOutIndex) {
                   /* Should be impossible */
-                  avrdude_message(MSG_INFO, "%s: Buffer overrun", progname);
+                  avrdude_message(MSG_INFO, "%s: Buffer overrun\n", progname);
                   xbs->transportUnusable = 1;
                   return -1;
                 }
