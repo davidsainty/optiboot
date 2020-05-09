@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14128 2020-05-03 12:49:37Z dave $ */
+/* $Id: xbee.c 14135 2020-05-09 23:47:49Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -60,7 +60,9 @@
  *
  * https://wiki.dfrobot.com/Xbee_Shield_For_Arduino__no_Xbee___SKU_DFR0015_
  */
+#ifndef XBEE_DEFAULT_RESET_PIN
 #define XBEE_DEFAULT_RESET_PIN 3
+#endif
 
 /*
  * After eight seconds the AVR bootloader watchdog will kick in.  But
@@ -68,7 +70,9 @@
  * eight seconds downstream, allow for 16 retries (of roughly one
  * second each).
  */
+#ifndef XBEE_MAX_RETRIES
 #define XBEE_MAX_RETRIES 16
+#endif
 
 /*
  * Maximum chunk size, which is the maximum encapsulated payload to be
@@ -97,7 +101,9 @@
  * reference to 18 bytes of overhead; and "Enable APS encryption" for
  * the reference to 9 bytes of overhead.
  */
+#ifndef XBEEBOOT_MAX_CHUNK
 #define XBEEBOOT_MAX_CHUNK 54
+#endif
 
 /*
  * Maximum source route intermediate hops.  This is described in the
@@ -107,7 +113,9 @@
  * What isn't described is how to know if a given source route length
  * is actually supported by the mesh for our target device.
  */
+#ifndef XBEE_MAX_INTERMEDIATE_HOPS
 #define XBEE_MAX_INTERMEDIATE_HOPS 40
+#endif
 
 /* Protocol */
 #define XBEEBOOT_PACKET_TYPE_ACK 0
