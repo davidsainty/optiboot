@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14136 2020-05-10 00:38:42Z dave $ */
+/* $Id: xbee.c 14137 2020-05-10 01:03:01Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -1419,7 +1419,7 @@ static int xbeedev_send(union filedescriptor *fdp,
        * has no effect, but will allow us to measure any reliability
        * issues on this link.
        */
-      localAsyncAT(xbs, "Local XBee ping", 'A', 'P', -1);
+      localAsyncAT(xbs, "Local XBee ping [send]", 'A', 'P', -1);
 
       /*
        * If we don't receive an ACK it might be because the chip
@@ -1500,11 +1500,19 @@ static int xbeedev_recv(union filedescriptor *fdp,
   for (retries = 0; retries < XBEE_MAX_RETRIES; retries++) {
     const int rc = xbeedev_poll(xbs, &buf, &buflen, -1, -1);
     if (rc == 0)
-      return rc;
+      return 0;
 
     if (xbs->transportUnusable)
       /* Don't attempt to continue on an unusable transport layer */
       return -1;
+
+    /*
+     * Test the connection to the local XBee by repeatedly
+     * requesting local configuration details.  This functionally
+     * has no effect, but will allow us to measure any reliability
+     * issues on this link.
+     */
+    localAsyncAT(xbs, "Local XBee ping [recv]", 'A', 'P', -1);
 
     /*
      * The chip may have missed an ACK from us.  Resend after a
