@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* $Id: xbee.c 14135 2020-05-09 23:47:49Z dave $ */
+/* $Id: xbee.c 14136 2020-05-10 00:38:42Z dave $ */
 
 /*
  * avrdude interface for AVR devices Over-The-Air programmable via an
@@ -944,13 +944,21 @@ static int xbeedev_poll(struct XBeeBootSession *xbs,
   }
 }
 
-static int localAT(struct XBeeBootSession *xbs, char const *detail,
-                   unsigned char at1, unsigned char at2, int value)
+/*
+ * @return
+ *          0 on success, a negative value on failure, or a positive
+ *          value indicating the sequence number associated with the
+ *          request.
+ */
+static int localAsyncAT(struct XBeeBootSession *xbs, char const *detail,
+                        unsigned char at1, unsigned char at2, int value)
 {
   if (xbs->directMode)
     /*
      * Remote XBee AT commands make no sense in direct mode - there is
      * no XBee device to communicate with.
+     *
+     * Return success, no sequence number.
      */
     return 0;
 
@@ -970,16 +978,34 @@ static int localAT(struct XBeeBootSession *xbs, char const *detail,
                   progname, at1, at2);
 
   /* Local AT command 0x08 */
-  sendAPIRequest(xbs, 0x08, sequence, -1, -1, -1, -1, -1, -1,
-                 detail, -1, XBEE_STATS_FRAME_LOCAL,
-                 XBEE_STATS_NOT_RETRY,
-                 length, buf);
+  int rc = sendAPIRequest(xbs, 0x08, sequence, -1, -1, -1, -1, -1, -1,
+                          detail, -1, XBEE_STATS_FRAME_LOCAL,
+                          XBEE_STATS_NOT_RETRY,
+                          length, buf);
+  if (rc < 0)
+    /* Failed */
+    return rc;
+
+  /* Success, positive sequence number */
+  return (int)sequence;
+}
+
+static int localAT(struct XBeeBootSession *xbs, char const *detail,
+                   unsigned char at1, unsigned char at2, int value)
+{
+  int result = localAsyncAT(xbs, detail, at1, at2, value);
+
+  if (result <= 0)
+    /* Failure, or success without a sequence number */
+    return result;
+
+  unsigned char sequence = (unsigned char)result;
 
   int retries;
   for (retries = 0; retries < 5; retries++) {
     const int rc = xbeedev_poll(xbs, NULL, NULL, -1, sequence);
-    if (!rc)
-      return rc;
+    if (rc == 0)
+      return 0;
   }
 
   return -1;
@@ -1386,6 +1412,14 @@ static int xbeedev_send(union filedescriptor *fdp,
         buf += blockLength;
         break;
       }
+
+      /*
+       * Test the connection to the local XBee by repeatedly
+       * requesting local configuration details.  This functionally
+       * has no effect, but will allow us to measure any reliability
+       * issues on this link.
+       */
+      localAsyncAT(xbs, "Local XBee ping", 'A', 'P', -1);
 
       /*
        * If we don't receive an ACK it might be because the chip
