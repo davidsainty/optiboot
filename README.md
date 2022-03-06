@@ -28,9 +28,9 @@ It provides the following features:
     Arduino/avrdude firmware update protocol and automatically switches to the
     standard Optiboot protocol.
 
-  * Full access to Optiboot-supported bootloader facilities Over-The-Air via
-    [patched avrdude software]
-    (https://savannah.nongnu.org/patch/index.php?8719).
+  * Full access to Optiboot-supported bootloader facilities
+    Over-The-Air via [avrdude] (http://www.nongnu.org/avrdude/)
+    version 6.4 and later.
 
 
 #### What hardware support does it need? ####
@@ -115,11 +115,10 @@ Yes it can.  In two ways, in fact:
     supported an extra level of digital signature on firmware updates as an
     additional security measure.  But then XBeeBoot wouldn't fit into 1kB.
 
-  * By necessity, XBeeBoot needs to be talked to from programmer software that
-    also knows how to talk to an XBee device in API mode.  Currently avrdude
-    doesn't have that feature as standard, so you will need to apply the
-    [patch] (https://savannah.nongnu.org/patch/index.php?8719) yourself and
-    rebuild avrdude to be able to perform Over-The-Air firmware updates.
+  * By necessity, XBeeBoot needs to be talked to from programmer
+    software that also knows how to talk to an XBee device in API
+    mode.  These features are available as standard in [avrdude]
+    (http://www.nongnu.org/avrdude/) version 6.4 and later.
 
 
 ----
